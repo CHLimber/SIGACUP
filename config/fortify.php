@@ -45,7 +45,7 @@ return [
     |
     */
 
-    'username' => 'email',
+    'username' => 'username',
 
     'email' => 'email',
 
@@ -161,8 +161,8 @@ return [
     */
 
     'features' => [
-        Features::registration(),
-        Features::resetPasswords(),
+        // Features::registration() — cuentas creadas por el administrador, no auto-registro
+        // Features::resetPasswords() — sin recuperación de contraseña
         Features::emailVerification(),
         Features::twoFactorAuthentication([
             'confirm' => true,

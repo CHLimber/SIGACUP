@@ -31,3 +31,7 @@ yarn-error.log
 # Claude Code
 CLAUDE.md
 .claude/
+
+# Claude Code
+.agents/
+skills-lock.json
