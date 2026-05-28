@@ -27,3 +27,7 @@ yarn-error.log
 /.nova
 /.vscode
 /.zed
+
+# Claude Code
+CLAUDE.md
+.claude/
