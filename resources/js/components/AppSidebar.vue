@@ -7,7 +7,7 @@ import {
     FileText,
     LayoutGrid,
     Settings,
-    Users,
+    UserCheck,
 } from 'lucide-vue-next';
 import AppLogo from '@/components/AppLogo.vue';
 import NavMain from '@/components/NavMain.vue';
@@ -46,9 +46,9 @@ const mainNavItems: NavItem[] = [
         icon: BarChart3,
     },
     {
-        title: 'Candidatos',
-        href: dashboard(),
-        icon: Users,
+        title: 'Admisión de candidatos',
+        href: '/administracion/admision',
+        icon: UserCheck,
     },
     {
         title: 'Reportes',
@@ -57,7 +57,7 @@ const mainNavItems: NavItem[] = [
     },
     {
         title: 'Administración',
-        href: dashboard(),
+        href: '/administracion/gestiones',
         icon: Settings,
     },
 ];

@@ -1,0 +1,119 @@
+<?php
+
+namespace App\AdministracionSistema\Controllers;
+
+use App\AdministracionSistema\Models\Gestion;
+use App\AdministracionSistema\Models\Parametro;
+use App\AdministracionSistema\Requests\StoreGestionRequest;
+use App\AdministracionSistema\Requests\UpdateGestionRequest;
+use App\Http\Controllers\Controller;
+use Illuminate\Http\RedirectResponse;
+use Inertia\Inertia;
+use Inertia\Response;
+
+class GestionController extends Controller
+{
+    private const ESTADOS = ['configuracion', 'inscripcion', 'cursado', 'admision', 'cerrada'];
+
+    private const ESTADO_LABELS = [
+        'inscripcion' => 'Inscripción',
+        'cursado'     => 'Cursado',
+        'admision'    => 'Admisión',
+        'cerrada'     => 'Cerrada',
+    ];
+
+    private const PARAM_CLAVES = [
+        'capacidad_max_grupo',
+        'peso_examen_1',
+        'peso_examen_2',
+        'peso_examen_3',
+        'nota_minima_aprobacion',
+    ];
+
+    private const PARAM_DESCRIPCIONES = [
+        'capacidad_max_grupo'    => 'Capacidad máxima de alumnos por grupo',
+        'peso_examen_1'          => 'Peso % del primer parcial',
+        'peso_examen_2'          => 'Peso % del segundo parcial',
+        'peso_examen_3'          => 'Peso % del examen final',
+        'nota_minima_aprobacion' => 'Nota mínima por materia para aprobar el CUP',
+    ];
+
+    public function index(): Response
+    {
+        return Inertia::render('AdministracionSistema/Gestion/Index', [
+            'gestiones' => Gestion::orderByDesc('anio')->orderByDesc('semestre')->get(),
+        ]);
+    }
+
+    public function create(): Response
+    {
+        return Inertia::render('AdministracionSistema/Gestion/Create');
+    }
+
+    public function store(StoreGestionRequest $request): RedirectResponse
+    {
+        $validated = $request->validated();
+
+        $gestion = Gestion::create(collect($validated)->except(self::PARAM_CLAVES)->all());
+
+        foreach (self::PARAM_CLAVES as $clave) {
+            Parametro::create([
+                'gestion_id'  => $gestion->id,
+                'clave'       => $clave,
+                'valor'       => (string) $validated[$clave],
+                'descripcion' => self::PARAM_DESCRIPCIONES[$clave],
+            ]);
+        }
+
+        return redirect()->route('gestiones.index')
+            ->with('flash', ['type' => 'success', 'message' => "Gestión {$gestion->label} creada correctamente."]);
+    }
+
+    public function edit(Gestion $gestion): Response
+    {
+        return Inertia::render('AdministracionSistema/Gestion/Edit', [
+            'gestion'    => $gestion,
+            'parametros' => $gestion->parametros->pluck('valor', 'clave'),
+        ]);
+    }
+
+    public function update(UpdateGestionRequest $request, Gestion $gestion): RedirectResponse
+    {
+        $validated = $request->validated();
+
+        $gestion->update(collect($validated)->except(self::PARAM_CLAVES)->all());
+
+        foreach (self::PARAM_CLAVES as $clave) {
+            $gestion->parametros()->where('clave', $clave)->update(['valor' => (string) $validated[$clave]]);
+        }
+
+        return redirect()->route('gestiones.index')
+            ->with('flash', ['type' => 'success', 'message' => "Gestión {$gestion->label} actualizada correctamente."]);
+    }
+
+    public function destroy(Gestion $gestion): RedirectResponse
+    {
+        $label = $gestion->label;
+        $gestion->delete();
+
+        return redirect()->route('gestiones.index')
+            ->with('flash', ['type' => 'success', 'message' => "Gestión {$label} eliminada."]);
+    }
+
+    public function avanzar(Gestion $gestion): RedirectResponse
+    {
+        $idx = array_search($gestion->estado, self::ESTADOS);
+
+        if ($idx === false || $idx >= count(self::ESTADOS) - 1) {
+            return back()->with('flash', ['type' => 'error', 'message' => 'Esta gestión ya se encuentra cerrada.']);
+        }
+
+        $nuevoEstado = self::ESTADOS[$idx + 1];
+        $gestion->update(['estado' => $nuevoEstado]);
+
+        $label = self::ESTADO_LABELS[$nuevoEstado];
+
+        return redirect()->route('gestiones.index')
+            ->with('flash', ['type' => 'success', 'message' => "Gestión {$gestion->label} avanzó a: {$label}."]);
+    }
+}

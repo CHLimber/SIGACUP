@@ -1,5 +1,6 @@
 <script setup lang="ts">
-import { Head, Link } from '@inertiajs/vue3';
+import { computed, ref } from 'vue';
+import { Head, Link, useForm } from '@inertiajs/vue3';
 import { dashboard, login } from '@/routes';
 
 const carreras = [
@@ -33,6 +34,68 @@ const distinciones = [
         icono: '🔬',
     },
 ];
+
+// ── Registro de candidato ───────────────────────────────────────────────
+const tipoRegistro = ref<'estudiante' | 'docente'>('estudiante');
+
+const carrerasOpciones = [
+    { value: 'sistemas',    label: 'Ing. en Sistemas' },
+    { value: 'informatica', label: 'Ing. Informática' },
+    { value: 'redes',       label: 'Ing. en Redes y Telecomunicaciones' },
+    { value: 'robotica',    label: 'Ing. en Robótica' },
+];
+
+const form = useForm({
+    ci:                     '',
+    apellido:               '',
+    nombres:                '',
+    fecha_nacimiento:       '',
+    sexo:                   '',
+    telefono:               '',
+    email:                  '',
+    direccion:              '',
+    carrera_primera_opcion: '',
+    carrera_segunda_opcion: '',
+});
+
+// Tema visual: rojo para estudiante, azul para docente
+const tema = computed(() => {
+    if (tipoRegistro.value === 'estudiante') {
+        return {
+            principal:    '#c70e0a',
+            gradiente:    'linear-gradient(to right, #7b0000, #c70e0a)',
+            avisoBg:      'bg-red-50',
+            avisoText:    'text-red-900',
+            ringClass:    'focus:ring-[#c70e0a]',
+            aviso:        'Solicitud de inscripción al CUP. La coordinación revisará tus datos y te notificará. Conserva tu CI: es tu identificador en el portal público.',
+            botonLabel:   'Enviar solicitud de inscripción',
+        };
+    }
+    return {
+        principal:    '#073b75',
+        gradiente:    'linear-gradient(to right, #060041, #073b75)',
+        avisoBg:      'bg-blue-50',
+        avisoText:    'text-blue-900',
+        ringClass:    'focus:ring-[#073b75]',
+        aviso:        'Solicitud para integrarte al cuerpo docente. La administración revisará tus datos y, si es aprobada, recibirás credenciales por email.',
+        botonLabel:   'Enviar solicitud de docencia',
+    };
+});
+
+const maxFechaNacimiento = computed(() => {
+    const hoy = new Date();
+    hoy.setFullYear(hoy.getFullYear() - 10);
+    return hoy.toISOString().slice(0, 10);
+});
+
+function submit() {
+    const url = tipoRegistro.value === 'estudiante'
+        ? '/registro/estudiante'
+        : '/registro/docente';
+    form.post(url, {
+        onSuccess: () => form.reset(),
+    });
+}
 </script>
 
 <template>
@@ -236,14 +299,298 @@ const distinciones = [
         </div>
     </section>
 
-    <!-- ─── REGISTRARSE (placeholder) ─── -->
+    <!-- ─── REGISTRARSE ─── -->
     <section id="registrarse" class="bg-white py-20">
-        <div class="mx-auto max-w-4xl px-6 text-center">
-            <div class="rounded-2xl border-2 border-dashed border-gray-200 p-16">
-                <p class="mb-4 text-5xl">📝</p>
-                <h2 class="mb-3 text-2xl font-bold text-[#073b75]">Registro de Candidatos</h2>
-                <p class="text-gray-400">Esta sección estará disponible próximamente.</p>
+        <div class="mx-auto max-w-2xl px-6">
+
+            <!-- Encabezado dinámico -->
+            <div class="mb-10 text-center">
+                <h2
+                    class="mb-4 text-3xl font-bold transition-colors duration-300"
+                    :style="{ color: tema.principal }"
+                >
+                    Registro de candidato
+                </h2>
+                <div
+                    class="mx-auto h-1 w-16 rounded transition-colors duration-300"
+                    :style="{ backgroundColor: tema.principal }"
+                ></div>
+                <p class="mt-4 text-sm text-gray-500">Elige el rol al que estás aplicando</p>
             </div>
+
+            <!-- Selector estudiante / docente -->
+            <div class="mb-8 flex gap-3">
+                <button
+                    type="button"
+                    @click="tipoRegistro = 'estudiante'"
+                    :class="[
+                        'flex-1 rounded-xl border-2 px-6 py-4 text-sm font-semibold transition',
+                        tipoRegistro === 'estudiante'
+                            ? 'border-[#c70e0a] bg-[#c70e0a] text-white shadow-md'
+                            : 'border-gray-200 bg-gray-50 text-gray-600 hover:border-[#c70e0a]/50 hover:bg-gray-100',
+                    ]"
+                >
+                    Estudiante CUP
+                </button>
+                <button
+                    type="button"
+                    @click="tipoRegistro = 'docente'"
+                    :class="[
+                        'flex-1 rounded-xl border-2 px-6 py-4 text-sm font-semibold transition',
+                        tipoRegistro === 'docente'
+                            ? 'border-[#073b75] bg-[#073b75] text-white shadow-md'
+                            : 'border-gray-200 bg-gray-50 text-gray-600 hover:border-[#073b75]/50 hover:bg-gray-100',
+                    ]"
+                >
+                    Docente
+                </button>
+            </div>
+
+            <!-- ── Formulario único ── -->
+            <form
+                @submit.prevent="submit"
+                class="overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm"
+            >
+                <!-- Aviso dinámico -->
+                <div
+                    class="px-6 py-3 text-xs transition-colors duration-300"
+                    :class="[tema.avisoBg, tema.avisoText]"
+                >
+                    ℹ️ {{ tema.aviso }}
+                </div>
+
+                <!-- Header datos personales (gradiente dinámico) -->
+                <div
+                    class="px-6 py-4 transition-colors duration-300"
+                    :style="{ background: tema.gradiente }"
+                >
+                    <h3 class="text-sm font-semibold uppercase tracking-wider text-white">Datos personales</h3>
+                </div>
+
+                <div class="grid grid-cols-1 gap-5 p-6 sm:grid-cols-2">
+                    <!-- CI -->
+                    <div class="flex flex-col gap-1.5 sm:col-span-2">
+                        <label class="text-sm font-medium text-gray-700">Carnet de Identidad (CI) <span class="text-red-500">*</span></label>
+                        <input
+                            v-model="form.ci"
+                            type="text"
+                            required
+                            maxlength="20"
+                            placeholder="ej. 12345678"
+                            :class="[
+                                'rounded-md border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 shadow-sm focus:outline-none focus:ring-2',
+                                tipoRegistro === 'estudiante' ? 'focus:ring-[#c70e0a]' : 'focus:ring-[#073b75]',
+                                { 'border-red-400': form.errors.ci },
+                            ]"
+                        />
+                        <p v-if="form.errors.ci" class="text-xs text-red-600">{{ form.errors.ci }}</p>
+                    </div>
+
+                    <!-- Apellido -->
+                    <div class="flex flex-col gap-1.5">
+                        <label class="text-sm font-medium text-gray-700">Apellido <span class="text-red-500">*</span></label>
+                        <input
+                            v-model="form.apellido"
+                            type="text"
+                            required
+                            placeholder="ej. Torrez"
+                            :class="[
+                                'rounded-md border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 shadow-sm focus:outline-none focus:ring-2',
+                                tipoRegistro === 'estudiante' ? 'focus:ring-[#c70e0a]' : 'focus:ring-[#073b75]',
+                                { 'border-red-400': form.errors.apellido },
+                            ]"
+                        />
+                        <p v-if="form.errors.apellido" class="text-xs text-red-600">{{ form.errors.apellido }}</p>
+                    </div>
+
+                    <!-- Nombres -->
+                    <div class="flex flex-col gap-1.5">
+                        <label class="text-sm font-medium text-gray-700">Nombres <span class="text-red-500">*</span></label>
+                        <input
+                            v-model="form.nombres"
+                            type="text"
+                            required
+                            placeholder="ej. María José"
+                            :class="[
+                                'rounded-md border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 shadow-sm focus:outline-none focus:ring-2',
+                                tipoRegistro === 'estudiante' ? 'focus:ring-[#c70e0a]' : 'focus:ring-[#073b75]',
+                                { 'border-red-400': form.errors.nombres },
+                            ]"
+                        />
+                        <p v-if="form.errors.nombres" class="text-xs text-red-600">{{ form.errors.nombres }}</p>
+                    </div>
+
+                    <!-- Fecha nacimiento -->
+                    <div class="flex flex-col gap-1.5">
+                        <label class="text-sm font-medium text-gray-700">Fecha de nacimiento <span class="text-red-500">*</span></label>
+                        <input
+                            v-model="form.fecha_nacimiento"
+                            type="date"
+                            min="1930-01-01"
+                            :max="maxFechaNacimiento"
+                            required
+                            :class="[
+                                'rounded-md border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 shadow-sm focus:outline-none focus:ring-2',
+                                tipoRegistro === 'estudiante' ? 'focus:ring-[#c70e0a]' : 'focus:ring-[#073b75]',
+                                { 'border-red-400': form.errors.fecha_nacimiento },
+                            ]"
+                        />
+                        <p v-if="form.errors.fecha_nacimiento" class="text-xs text-red-600">{{ form.errors.fecha_nacimiento }}</p>
+                    </div>
+
+                    <!-- Sexo -->
+                    <div class="flex flex-col gap-1.5">
+                        <label class="text-sm font-medium text-gray-700">Sexo <span class="text-red-500">*</span></label>
+                        <select
+                            v-model="form.sexo"
+                            required
+                            :class="[
+                                'rounded-md border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 shadow-sm focus:outline-none focus:ring-2',
+                                tipoRegistro === 'estudiante' ? 'focus:ring-[#c70e0a]' : 'focus:ring-[#073b75]',
+                                { 'border-red-400': form.errors.sexo },
+                            ]"
+                        >
+                            <option value="" disabled>Seleccionar</option>
+                            <option value="masculino">Masculino</option>
+                            <option value="femenino">Femenino</option>
+                        </select>
+                        <p v-if="form.errors.sexo" class="text-xs text-red-600">{{ form.errors.sexo }}</p>
+                    </div>
+
+                    <!-- Teléfono -->
+                    <div class="flex flex-col gap-1.5">
+                        <label class="text-sm font-medium text-gray-700">Teléfono <span class="text-red-500">*</span></label>
+                        <input
+                            v-model="form.telefono"
+                            type="tel"
+                            required
+                            maxlength="30"
+                            placeholder="ej. 77712345"
+                            :class="[
+                                'rounded-md border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 shadow-sm focus:outline-none focus:ring-2',
+                                tipoRegistro === 'estudiante' ? 'focus:ring-[#c70e0a]' : 'focus:ring-[#073b75]',
+                                { 'border-red-400': form.errors.telefono },
+                            ]"
+                        />
+                        <p v-if="form.errors.telefono" class="text-xs text-red-600">{{ form.errors.telefono }}</p>
+                    </div>
+
+                    <!-- Email -->
+                    <div class="flex flex-col gap-1.5">
+                        <label class="text-sm font-medium text-gray-700">
+                            Correo electrónico <span class="text-red-500">*</span>
+                        </label>
+                        <input
+                            v-model="form.email"
+                            type="email"
+                            required
+                            placeholder="correo@ejemplo.com"
+                            :class="[
+                                'rounded-md border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 shadow-sm focus:outline-none focus:ring-2',
+                                tipoRegistro === 'estudiante' ? 'focus:ring-[#c70e0a]' : 'focus:ring-[#073b75]',
+                                { 'border-red-400': form.errors.email },
+                            ]"
+                        />
+                        <p v-if="form.errors.email" class="text-xs text-red-600">{{ form.errors.email }}</p>
+                        <p v-if="tipoRegistro === 'docente'" class="text-xs text-gray-400">
+                            A este correo enviaremos las credenciales si tu solicitud es aprobada.
+                        </p>
+                    </div>
+
+                    <!-- Dirección -->
+                    <div class="flex flex-col gap-1.5 sm:col-span-2">
+                        <label class="text-sm font-medium text-gray-700">Dirección <span class="text-red-500">*</span></label>
+                        <input
+                            v-model="form.direccion"
+                            type="text"
+                            required
+                            placeholder="ej. Av. Brasil N° 123, Santa Cruz"
+                            :class="[
+                                'rounded-md border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 shadow-sm focus:outline-none focus:ring-2',
+                                tipoRegistro === 'estudiante' ? 'focus:ring-[#c70e0a]' : 'focus:ring-[#073b75]',
+                                { 'border-red-400': form.errors.direccion },
+                            ]"
+                        />
+                        <p v-if="form.errors.direccion" class="text-xs text-red-600">{{ form.errors.direccion }}</p>
+                    </div>
+                </div>
+
+                <!-- Sección Carreras (solo estudiante) -->
+                <template v-if="tipoRegistro === 'estudiante'">
+                    <div class="border-y border-gray-100 px-6 py-3" style="background-color: #c70e0a;">
+                        <h3 class="text-sm font-semibold uppercase tracking-wider text-white">Preferencia de carrera</h3>
+                    </div>
+                    <div class="grid grid-cols-1 gap-5 p-6 sm:grid-cols-2">
+                        <!-- 1ra opción -->
+                        <div class="flex flex-col gap-1.5">
+                            <label class="text-sm font-medium text-gray-700">1ra opción <span class="text-red-500">*</span></label>
+                            <select
+                                v-model="form.carrera_primera_opcion"
+                                required
+                                class="rounded-md border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 shadow-sm focus:outline-none focus:ring-2 focus:ring-[#c70e0a]"
+                                :class="{ 'border-red-400': form.errors.carrera_primera_opcion }"
+                            >
+                                <option value="" disabled>Selecciona una carrera</option>
+                                <option
+                                    v-for="c in carrerasOpciones"
+                                    :key="c.value"
+                                    :value="c.value"
+                                    :disabled="c.value === form.carrera_segunda_opcion"
+                                >{{ c.label }}</option>
+                            </select>
+                            <p v-if="form.errors.carrera_primera_opcion" class="text-xs text-red-600">
+                                {{ form.errors.carrera_primera_opcion }}
+                            </p>
+                        </div>
+
+                        <!-- 2da opción -->
+                        <div class="flex flex-col gap-1.5">
+                            <label class="text-sm font-medium text-gray-700">2da opción <span class="text-red-500">*</span></label>
+                            <select
+                                v-model="form.carrera_segunda_opcion"
+                                required
+                                class="rounded-md border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 shadow-sm focus:outline-none focus:ring-2 focus:ring-[#c70e0a]"
+                                :class="{ 'border-red-400': form.errors.carrera_segunda_opcion }"
+                            >
+                                <option value="" disabled>Selecciona una carrera</option>
+                                <option
+                                    v-for="c in carrerasOpciones"
+                                    :key="c.value"
+                                    :value="c.value"
+                                    :disabled="c.value === form.carrera_primera_opcion"
+                                >{{ c.label }}</option>
+                            </select>
+                            <p v-if="form.errors.carrera_segunda_opcion" class="text-xs text-red-600">
+                                {{ form.errors.carrera_segunda_opcion }}
+                            </p>
+                        </div>
+
+                        <p class="text-xs text-gray-400 sm:col-span-2">
+                            Las dos opciones deben ser distintas. Si hay cupos disponibles, se asignará la carrera en orden de preferencia.
+                        </p>
+                    </div>
+                </template>
+
+                <!-- Botones -->
+                <div class="flex justify-end gap-3 border-t border-gray-100 px-6 py-4">
+                    <button
+                        type="button"
+                        @click="form.reset()"
+                        class="rounded-md border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 transition hover:bg-gray-50"
+                    >
+                        Limpiar
+                    </button>
+                    <button
+                        type="submit"
+                        :disabled="form.processing"
+                        class="rounded-md px-6 py-2 text-sm font-semibold text-white shadow-sm transition hover:brightness-110 disabled:opacity-60"
+                        :style="{ backgroundColor: tema.principal }"
+                    >
+                        {{ form.processing ? 'Enviando…' : tema.botonLabel }}
+                    </button>
+                </div>
+            </form>
+
         </div>
     </section>
 

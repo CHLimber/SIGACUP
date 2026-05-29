@@ -2,7 +2,10 @@
 
 namespace App\Providers;
 
+use App\GestionDocentes\Models\CandidatoDocente;
+use App\GestionEstudiantes\Models\CandidatoEstudiante;
 use Carbon\CarbonImmutable;
+use Illuminate\Database\Eloquent\Relations\Relation;
 use Illuminate\Support\Facades\Date;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\ServiceProvider;
@@ -24,6 +27,11 @@ class AppServiceProvider extends ServiceProvider
     public function boot(): void
     {
         $this->configureDefaults();
+
+        Relation::enforceMorphMap([
+            'candidato_estudiante' => CandidatoEstudiante::class,
+            'candidato_docente'    => CandidatoDocente::class,
+        ]);
     }
 
     /**
