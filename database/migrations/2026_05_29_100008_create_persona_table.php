@@ -8,7 +8,7 @@ return new class extends Migration
 {
     public function up(): void
     {
-        Schema::create('solicitudes_docente', function (Blueprint $table) {
+        Schema::create('persona', function (Blueprint $table) {
             $table->id();
             $table->string('ci', 20)->unique();
             $table->string('apellido');
@@ -17,21 +17,13 @@ return new class extends Migration
             $table->string('sexo', 20);
             $table->string('telefono', 30);
             $table->string('email')->unique();
-            $table->string('direccion');
-            $table->string('estado', 30)->default('pendiente');
-            $table->string('token_acceso', 64)->unique();
-            $table->foreignId('user_id')->nullable()->constrained('users')->nullOnDelete();
-            $table->timestamp('aprobado_at')->nullable();
-            $table->timestamp('rechazado_at')->nullable();
-            $table->string('motivo_rechazo')->nullable();
+            $table->string('direccion', 500);
             $table->timestamps();
-
-            $table->index('estado');
         });
     }
 
     public function down(): void
     {
-        Schema::dropIfExists('solicitudes_docente');
+        Schema::dropIfExists('persona');
     }
 };

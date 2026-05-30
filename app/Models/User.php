@@ -14,28 +14,27 @@ use Laravel\Fortify\Contracts\PasskeyUser;
 use Laravel\Fortify\PasskeyAuthenticatable;
 use Laravel\Fortify\TwoFactorAuthenticatable;
 
-#[Fillable(['name', 'username', 'email', 'password', 'role', 'fecha_nacimiento', 'sexo', 'telefono', 'direccion', 'intentos_fallidos', 'bloqueado_hasta'])]
+#[Fillable(['persona_id', 'name', 'username', 'email', 'password', 'role', 'intentos_fallidos', 'bloqueado_hasta'])]
 #[Hidden(['password', 'two_factor_secret', 'two_factor_recovery_codes', 'remember_token'])]
 class User extends Authenticatable implements PasskeyUser
 {
     /** @use HasFactory<UserFactory> */
     use HasFactory, Notifiable, PasskeyAuthenticatable, TwoFactorAuthenticatable;
 
-    /**
-     * Get the attributes that should be cast.
-     *
-     * @return array<string, string>
-     */
     protected function casts(): array
     {
         return [
-            'email_verified_at'    => 'datetime',
-            'password'             => 'hashed',
+            'email_verified_at'       => 'datetime',
+            'password'                => 'hashed',
             'two_factor_confirmed_at' => 'datetime',
-            'role'                 => UserRole::class,
-            'fecha_nacimiento'      => 'date',
-            'bloqueado_hasta'      => 'datetime',
-            'intentos_fallidos'    => 'integer',
+            'role'                    => UserRole::class,
+            'bloqueado_hasta'         => 'datetime',
+            'intentos_fallidos'       => 'integer',
         ];
+    }
+
+    public function persona(): \Illuminate\Database\Eloquent\Relations\BelongsTo
+    {
+        return $this->belongsTo(Persona::class);
     }
 }

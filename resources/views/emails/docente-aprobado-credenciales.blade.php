@@ -6,8 +6,8 @@
 </head>
 <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
     <div style="background: linear-gradient(to right, #060041, #073b75); padding: 20px; color: white; border-radius: 8px 8px 0 0;">
-        <h1 style="margin: 0; font-size: 22px;">SIGACUP — FICCT UAGRM</h1>
-        <p style="margin: 4px 0 0; font-size: 13px; opacity: 0.85;">Sistema de Gestión del Curso Preuniversitario</p>
+        <h1 style="margin: 0; font-size: 22px; color: #ffffff;">SIGACUP — FICCT UAGRM</h1>
+        <p style="margin: 4px 0 0; font-size: 13px; color: #d0e4f7;">Sistema de Gestión del Curso Preuniversitario</p>
     </div>
 
     <div style="background: #fff; padding: 30px; border: 1px solid #e5e7eb; border-top: none; border-radius: 0 0 8px 8px;">

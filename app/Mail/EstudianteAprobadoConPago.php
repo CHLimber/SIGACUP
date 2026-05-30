@@ -3,6 +3,7 @@
 namespace App\Mail;
 
 use App\GestionEstudiantes\Models\CandidatoEstudiante;
+use App\InscripcionPagos\Models\Pago;
 use Illuminate\Bus\Queueable;
 use Illuminate\Mail\Mailable;
 use Illuminate\Mail\Mailables\Content;
@@ -13,7 +14,10 @@ class EstudianteAprobadoConPago extends Mailable
 {
     use Queueable, SerializesModels;
 
-    public function __construct(public CandidatoEstudiante $candidato) {}
+    public function __construct(
+        public CandidatoEstudiante $candidato,
+        public Pago $pago,
+    ) {}
 
     public function envelope(): Envelope
     {
@@ -26,7 +30,8 @@ class EstudianteAprobadoConPago extends Mailable
             view: 'emails.estudiante-aprobado-con-pago',
             with: [
                 'candidato' => $this->candidato,
-                'pagoUrl'   => route('portal.matricula.show', ['token' => $this->candidato->token_pago]),
+                'pago'      => $this->pago,
+                'pagoUrl'   => route('portal.matricula.show', ['token' => $this->pago->token_pago]),
             ],
         );
     }

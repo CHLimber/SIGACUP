@@ -6,37 +6,28 @@
 </head>
 <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
     <div style="background: linear-gradient(to right, #060041, #073b75); padding: 20px; color: white; border-radius: 8px 8px 0 0;">
-        <h1 style="margin: 0; font-size: 22px;">SIGACUP — FICCT UAGRM</h1>
-        <p style="margin: 4px 0 0; font-size: 13px; opacity: 0.85;">Sistema de Gestión del Curso Preuniversitario</p>
+        <h1 style="margin: 0; font-size: 22px; color: #ffffff;">SIGACUP — FICCT UAGRM</h1>
+        <p style="margin: 4px 0 0; font-size: 13px; color: #d0e4f7;">Sistema de Gestión del Curso Preuniversitario</p>
     </div>
 
     <div style="background: #fff; padding: 30px; border: 1px solid #e5e7eb; border-top: none; border-radius: 0 0 8px 8px;">
-        <h2 style="color: #16a34a; margin-top: 0;">🎉 ¡Felicidades, {{ $candidato->nombres }}!</h2>
+        <h2 style="color: #16a34a; margin-top: 0;">🎉 ¡Felicidades, {{ $candidato->persona->nombres }}!</h2>
 
         <p>Tu solicitud al <strong>Curso Preuniversitario (CUP)</strong> ha sido <strong style="color: #16a34a;">aprobada</strong>. El último paso es completar el pago de tu matrícula.</p>
 
         <div style="background: #f0fdf4; padding: 15px; border-left: 4px solid #16a34a; margin: 20px 0;">
             <p style="margin: 0 0 6px;"><strong>Datos confirmados:</strong></p>
-            <p style="margin: 2px 0;"><strong>CI:</strong> {{ $candidato->ci }}</p>
-            <p style="margin: 2px 0;"><strong>Nombre:</strong> {{ $candidato->apellido }} {{ $candidato->nombres }}</p>
-            <p style="margin: 2px 0;"><strong>1ra opción:</strong> {{ ucfirst($candidato->carrera_primera_opcion) }}</p>
+            <p style="margin: 2px 0;"><strong>CI:</strong> {{ $candidato->persona->ci }}</p>
+            <p style="margin: 2px 0;"><strong>Nombre:</strong> {{ $candidato->persona->apellido }} {{ $candidato->persona->nombres }}</p>
+            <p style="margin: 2px 0;"><strong>1ra opción:</strong> {{ $pago->postulacion->carrera1->nombre }}</p>
         </div>
 
         <div style="background: #fffbeb; padding: 18px; border: 1px solid #fde68a; border-radius: 8px; margin: 20px 0;">
             <p style="margin: 0 0 8px; font-weight: 600; color: #92400e;">Detalle de la matrícula:</p>
             <table style="width: 100%; font-size: 14px;">
                 <tr>
-                    <td style="padding: 4px 0; color: #6b7280;">Monto en bolivianos:</td>
-                    <td style="padding: 4px 0; text-align: right; font-weight: 600;">Bs {{ number_format($candidato->monto_bs, 2) }}</td>
-                </tr>
-                <tr>
-                    <td style="padding: 4px 0; color: #6b7280;">A cobrar (USD):</td>
-                    <td style="padding: 4px 0; text-align: right; font-weight: 700; color: #c70e0a; font-size: 16px;">${{ number_format($candidato->monto_usd, 2) }}</td>
-                </tr>
-                <tr>
-                    <td colspan="2" style="padding-top: 6px; font-size: 11px; color: #92400e; border-top: 1px dashed #fde68a;">
-                        Tasa de conversión: 1 USD = {{ number_format($candidato->tasa_cambio, 4) }} Bs
-                    </td>
+                    <td style="padding: 4px 0; color: #6b7280;">Monto a pagar:</td>
+                    <td style="padding: 4px 0; text-align: right; font-weight: 700; color: #c70e0a; font-size: 16px;">Bs {{ number_format($pago->monto_bs, 2) }}</td>
                 </tr>
             </table>
         </div>

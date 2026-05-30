@@ -6,7 +6,7 @@ use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
-#[Fillable(['gestion_id', 'clave', 'valor', 'descripcion'])]
+#[Fillable(['gestion_id', 'clave', 'valor'])]
 class Parametro extends Model
 {
     protected $table = 'parametro';

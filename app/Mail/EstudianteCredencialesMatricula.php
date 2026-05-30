@@ -2,7 +2,7 @@
 
 namespace App\Mail;
 
-use App\GestionEstudiantes\Models\CandidatoEstudiante;
+use App\InscripcionPagos\Models\Pago;
 use Illuminate\Bus\Queueable;
 use Illuminate\Mail\Mailable;
 use Illuminate\Mail\Mailables\Content;
@@ -14,7 +14,7 @@ class EstudianteCredencialesMatricula extends Mailable
     use Queueable, SerializesModels;
 
     public function __construct(
-        public CandidatoEstudiante $candidato,
+        public Pago $pago,
         public string $username,
         public string $passwordTemporal,
     ) {}
@@ -29,10 +29,10 @@ class EstudianteCredencialesMatricula extends Mailable
         return new Content(
             view: 'emails.estudiante-credenciales-matricula',
             with: [
-                'candidato'        => $this->candidato,
+                'pago'             => $this->pago,
                 'username'         => $this->username,
                 'passwordTemporal' => $this->passwordTemporal,
-                'comprobanteUrl'   => route('portal.matricula.comprobante', ['token' => $this->candidato->token_pago]),
+                'comprobanteUrl'   => route('portal.matricula.comprobante', ['token' => $this->pago->token_pago]),
             ],
         );
     }

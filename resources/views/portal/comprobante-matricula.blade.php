@@ -2,7 +2,7 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <title>Comprobante de matrícula — {{ $candidato->numero_factura }}</title>
+    <title>Comprobante de matrícula — {{ $pago->numero_factura }}</title>
     <style>
         * { box-sizing: border-box; }
         body {
@@ -136,6 +136,11 @@
     </style>
 </head>
 <body>
+    @php
+        $persona   = $pago->postulacion->candidatoEstudiante->persona;
+        $carrera1  = $pago->postulacion->carrera1;
+    @endphp
+
     <div class="factura">
         <div class="header">
             <div>
@@ -149,8 +154,8 @@
         <div class="titulo-factura">
             <h2>Comprobante de matrícula</h2>
             <div class="meta">
-                <span>Nº <strong>{{ $candidato->numero_factura }}</strong></span>
-                <span>Fecha: <strong>{{ optional($candidato->pagado_at)->format('d/m/Y H:i') }}</strong></span>
+                <span>Nº <strong>{{ $pago->numero_factura }}</strong></span>
+                <span>Fecha: <strong>{{ $pago->updated_at?->format('d/m/Y H:i') }}</strong></span>
             </div>
         </div>
 
@@ -158,19 +163,19 @@
             <h3>Datos del estudiante</h3>
             <div class="fila">
                 <span class="label">Nombre completo</span>
-                <span class="valor">{{ $candidato->apellido }} {{ $candidato->nombres }}</span>
+                <span class="valor">{{ $persona->apellido }} {{ $persona->nombres }}</span>
             </div>
             <div class="fila">
                 <span class="label">CI</span>
-                <span class="valor">{{ $candidato->ci }}</span>
+                <span class="valor">{{ $persona->ci }}</span>
             </div>
             <div class="fila">
                 <span class="label">Email</span>
-                <span class="valor">{{ $candidato->email }}</span>
+                <span class="valor">{{ $persona->email }}</span>
             </div>
             <div class="fila">
                 <span class="label">Carrera (1ra opción)</span>
-                <span class="valor">{{ ucfirst($candidato->carrera_primera_opcion) }}</span>
+                <span class="valor">{{ $carrera1?->nombre }}</span>
             </div>
         </div>
 
@@ -181,12 +186,8 @@
                 <span class="valor">{{ config('sigacup.matricula.descripcion') }}</span>
             </div>
             <div class="fila">
-                <span class="label">Monto en bolivianos</span>
-                <span class="valor">Bs {{ number_format($candidato->monto_bs, 2) }}</span>
-            </div>
-            <div class="fila">
-                <span class="label">Tasa de cambio</span>
-                <span class="valor">1 USD = {{ number_format($candidato->tasa_cambio, 4) }} Bs</span>
+                <span class="label">Monto</span>
+                <span class="valor">Bs {{ number_format($pago->monto_bs, 2) }}</span>
             </div>
             <div class="fila">
                 <span class="label">Método de pago</span>
@@ -194,14 +195,14 @@
             </div>
             <div class="fila">
                 <span class="label">ID transacción Stripe</span>
-                <span class="valor" style="font-family: monospace; font-size: 11px;">{{ $candidato->stripe_payment_intent_id }}</span>
+                <span class="valor" style="font-family: monospace; font-size: 11px;">{{ $pago->stripe_payment_intent_id }}</span>
             </div>
         </div>
 
         <div class="totales">
             <div class="total">
                 <span class="label">Total cobrado</span>
-                <span class="valor">${{ number_format($candidato->monto_usd, 2) }} USD</span>
+                <span class="valor">Bs {{ number_format($pago->monto_bs, 2) }}</span>
             </div>
         </div>
 

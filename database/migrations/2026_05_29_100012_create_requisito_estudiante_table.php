@@ -8,10 +8,10 @@ return new class extends Migration
 {
     public function up(): void
     {
-        Schema::create('requisitos_archivos', function (Blueprint $table) {
+        Schema::create('requisito_estudiante', function (Blueprint $table) {
             $table->id();
-            $table->string('candidato_type', 50);
-            $table->unsignedBigInteger('candidato_id');
+            $table->foreignId('candidato_estudiante_id')
+                ->constrained('candidato_estudiante')->cascadeOnDelete();
             $table->string('codigo', 60);
             $table->string('nombre_original');
             $table->string('ruta_archivo');
@@ -22,13 +22,14 @@ return new class extends Migration
             $table->timestamp('revisado_at')->nullable();
             $table->timestamps();
 
-            $table->index(['candidato_type', 'candidato_id'], 'requisitos_candidato_idx');
-            $table->unique(['candidato_type', 'candidato_id', 'codigo'], 'requisitos_unico_por_codigo');
+            $table->unique(['candidato_estudiante_id', 'codigo']);
+            $table->index('candidato_estudiante_id');
+            $table->index('estado');
         });
     }
 
     public function down(): void
     {
-        Schema::dropIfExists('requisitos_archivos');
+        Schema::dropIfExists('requisito_estudiante');
     }
 };

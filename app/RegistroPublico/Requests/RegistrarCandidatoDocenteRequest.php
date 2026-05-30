@@ -2,7 +2,7 @@
 
 namespace App\RegistroPublico\Requests;
 
-use App\GestionDocentes\Models\CandidatoDocente;
+use App\Models\Persona;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
@@ -16,13 +16,13 @@ class RegistrarCandidatoDocenteRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'ci'               => ['required', 'string', 'max:20', Rule::unique(CandidatoDocente::class)],
+            'ci'               => ['required', 'string', 'max:20', Rule::unique(Persona::class)],
             'apellido'         => ['required', 'string', 'max:255'],
             'nombres'          => ['required', 'string', 'max:255'],
             'fecha_nacimiento' => ['required', 'date', 'before:today'],
             'sexo'             => ['required', 'string', Rule::in(['masculino', 'femenino'])],
             'telefono'         => ['required', 'string', 'max:30'],
-            'email'            => ['required', 'string', 'email', 'max:255', Rule::unique(CandidatoDocente::class)],
+            'email'            => ['required', 'string', 'email', 'max:255', Rule::unique(Persona::class)],
             'direccion'        => ['required', 'string', 'max:500'],
         ];
     }

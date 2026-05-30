@@ -9,15 +9,16 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('users', function (Blueprint $table) {
-            $table->unsignedTinyInteger('intentos_fallidos')->default(0)->after('role');
-            $table->timestamp('bloqueado_hasta')->nullable()->after('intentos_fallidos');
+            $table->foreignId('persona_id')->nullable()->unique()->after('id')
+                ->constrained('persona')->nullOnDelete();
         });
     }
 
     public function down(): void
     {
         Schema::table('users', function (Blueprint $table) {
-            $table->dropColumn(['intentos_fallidos', 'bloqueado_hasta']);
+            $table->dropForeign(['persona_id']);
+            $table->dropColumn('persona_id');
         });
     }
 };

@@ -6,7 +6,8 @@ use App\GestionDocentes\Models\CandidatoDocente;
 use App\GestionEstudiantes\Models\CandidatoEstudiante;
 use App\Http\Controllers\Controller;
 use App\RegistroPublico\Catalogos\RequisitosCatalogo;
-use App\RegistroPublico\Models\RequisitoArchivo;
+use App\RegistroPublico\Models\RequisitoDocente;
+use App\RegistroPublico\Models\RequisitoEstudiante;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -100,6 +101,10 @@ class PortalCandidatoController extends Controller
             Storage::disk('local')->delete($previo->ruta_archivo);
         }
 
+        $estadoPendiente = $candidato instanceof CandidatoEstudiante
+            ? RequisitoEstudiante::ESTADO_PENDIENTE_REVISION
+            : RequisitoDocente::ESTADO_PENDIENTE_REVISION;
+
         $candidato->requisitos()->updateOrCreate(
             ['codigo' => $codigo],
             [
@@ -107,7 +112,7 @@ class PortalCandidatoController extends Controller
                 'ruta_archivo'    => $ruta,
                 'mime_type'       => $file->getMimeType(),
                 'tamano'          => $file->getSize(),
-                'estado'          => RequisitoArchivo::ESTADO_PENDIENTE_REVISION,
+                'estado'          => $estadoPendiente,
                 'motivo_rechazo'  => null,
                 'revisado_at'     => null,
             ],
@@ -177,8 +182,8 @@ class PortalCandidatoController extends Controller
 
     private function candidatoPorToken(string $token): Model
     {
-        $candidato = CandidatoEstudiante::where('token_acceso', $token)->first()
-            ?? CandidatoDocente::where('token_acceso', $token)->first();
+        $candidato = CandidatoEstudiante::where('token_acceso', $token)->with('persona')->first()
+            ?? CandidatoDocente::where('token_acceso', $token)->with('persona')->first();
 
         if (! $candidato) {
             abort(404, 'Link inválido o expirado.');
@@ -203,7 +208,11 @@ class PortalCandidatoController extends Controller
 
         if ($candidato->estado === CandidatoEstudiante::ESTADO_REQUIERE_CORRECCIONES) {
             $archivo = $candidato->requisitos()->where('codigo', $codigo)->first();
-            if ($archivo && $archivo->estado === RequisitoArchivo::ESTADO_APROBADO) {
+            $estadoAprobado = $candidato instanceof CandidatoEstudiante
+                ? RequisitoEstudiante::ESTADO_APROBADO
+                : RequisitoDocente::ESTADO_APROBADO;
+
+            if ($archivo && $archivo->estado === $estadoAprobado) {
                 abort(403, 'Este requisito ya fue aprobado y no puede modificarse.');
             }
         }

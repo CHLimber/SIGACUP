@@ -20,6 +20,8 @@ const form = useForm({
     fecha_fin_inscripcion:    '',
     fecha_inicio_cursado:     '',
     fecha_fin_cursado:        '',
+    monto_matricula_bs:       800,
+    monto_matricula_usd:      115.49,
     capacidad_max_grupo:      70,
     peso_examen_1:            30,
     peso_examen_2:            30,
@@ -197,6 +199,53 @@ function submit() {
                         </div>
                         <p v-if="form.errors.capacidad_max_grupo" class="text-xs text-red-600">
                             {{ form.errors.capacidad_max_grupo }}
+                        </p>
+                    </div>
+                </div>
+
+                <!-- ── Matrícula ── -->
+                <div class="border-y border-gray-100 px-6 py-3" style="background-color: #073b75;">
+                    <h2 class="text-sm font-semibold uppercase tracking-wider text-white">Matrícula</h2>
+                </div>
+                <div class="grid grid-cols-2 gap-6 p-6">
+                    <div class="flex flex-col gap-1.5">
+                        <label for="monto_bs" class="text-sm font-medium text-gray-700">
+                            Monto matrícula (Bs) <span class="text-red-500">*</span>
+                        </label>
+                        <div class="flex items-center gap-2">
+                            <input
+                                id="monto_bs"
+                                v-model="form.monto_matricula_bs"
+                                type="number"
+                                min="1"
+                                step="0.01"
+                                class="w-32 rounded-md border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 shadow-sm focus:outline-none focus:ring-2 focus:ring-[#073b75]"
+                                :class="{ 'border-red-400': form.errors.monto_matricula_bs }"
+                            />
+                            <span class="text-sm text-gray-500">Bs</span>
+                        </div>
+                        <p v-if="form.errors.monto_matricula_bs" class="text-xs text-red-600">
+                            {{ form.errors.monto_matricula_bs }}
+                        </p>
+                    </div>
+                    <div class="flex flex-col gap-1.5">
+                        <label for="monto_usd" class="text-sm font-medium text-gray-700">
+                            Monto matrícula (USD) <span class="text-red-500">*</span>
+                        </label>
+                        <div class="flex items-center gap-2">
+                            <input
+                                id="monto_usd"
+                                v-model="form.monto_matricula_usd"
+                                type="number"
+                                min="1"
+                                step="0.01"
+                                class="w-32 rounded-md border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 shadow-sm focus:outline-none focus:ring-2 focus:ring-[#073b75]"
+                                :class="{ 'border-red-400': form.errors.monto_matricula_usd }"
+                            />
+                            <span class="text-sm text-gray-500">USD</span>
+                        </div>
+                        <p v-if="form.errors.monto_matricula_usd" class="text-xs text-red-600">
+                            {{ form.errors.monto_matricula_usd }}
                         </p>
                     </div>
                 </div>

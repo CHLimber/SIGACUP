@@ -5,13 +5,17 @@ namespace App\Admision\Controllers;
 use App\Enums\UserRole;
 use App\GestionDocentes\Models\CandidatoDocente;
 use App\GestionEstudiantes\Models\CandidatoEstudiante;
+use App\GestionEstudiantes\Models\Postulacion;
 use App\Http\Controllers\Controller;
+use App\InscripcionPagos\Models\Pago;
 use App\Mail\DocenteAprobadoConCredenciales;
 use App\Mail\EstudianteAprobadoConPago;
 use App\Mail\RequisitosRequierenCorreccion;
+use App\Models\Persona;
 use App\Models\User;
 use App\RegistroPublico\Catalogos\RequisitosCatalogo;
-use App\RegistroPublico\Models\RequisitoArchivo;
+use App\RegistroPublico\Models\RequisitoDocente;
+use App\RegistroPublico\Models\RequisitoEstudiante;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -28,32 +32,54 @@ class AdmisionController extends Controller
     public function index(): Response
     {
         return Inertia::render('Admision/Index', [
-            'candidatosEstudiante' => CandidatoEstudiante::withCount([
-                'requisitos as requisitos_pendientes_revision_count' => fn ($q) => $q->where('estado', RequisitoArchivo::ESTADO_PENDIENTE_REVISION),
-            ])->orderBy('created_at', 'desc')->get(),
-            'candidatosDocente'    => CandidatoDocente::withCount([
-                'requisitos as requisitos_pendientes_revision_count' => fn ($q) => $q->where('estado', RequisitoArchivo::ESTADO_PENDIENTE_REVISION),
-            ])->orderBy('created_at', 'desc')->get(),
+            'candidatosEstudiante' => CandidatoEstudiante::with(['persona', 'postulacion.carrera1', 'postulacion.carrera2'])
+                ->withCount([
+                    'requisitos as requisitos_pendientes_revision_count' => fn ($q) => $q->where('estado', RequisitoEstudiante::ESTADO_PENDIENTE_REVISION),
+                ])
+                ->orderBy('created_at', 'desc')
+                ->get(),
+            'candidatosDocente' => CandidatoDocente::with('persona')
+                ->withCount([
+                    'requisitos as requisitos_pendientes_revision_count' => fn ($q) => $q->where('estado', RequisitoDocente::ESTADO_PENDIENTE_REVISION),
+                ])
+                ->orderBy('created_at', 'desc')
+                ->get(),
         ]);
     }
 
     public function revisarCandidatoEstudiante(CandidatoEstudiante $candidato): Response
     {
+        $candidato->load(['persona', 'postulacion.carrera1', 'postulacion.carrera2']);
+
         return $this->renderRevisar($candidato, 'estudiante');
     }
 
     public function revisarCandidatoDocente(CandidatoDocente $candidato): Response
     {
+        $candidato->load('persona');
+
         return $this->renderRevisar($candidato, 'docente');
     }
 
-    public function aprobarRequisito(RequisitoArchivo $archivo): RedirectResponse
+    public function aprobarRequisito(Request $request): RedirectResponse
     {
-        $archivo->update([
-            'estado'         => RequisitoArchivo::ESTADO_APROBADO,
-            'motivo_rechazo' => null,
-            'revisado_at'    => now(),
-        ]);
+        $tipo = $request->input('tipo', 'estudiante');
+
+        if ($tipo === 'docente') {
+            $archivo = RequisitoDocente::findOrFail($request->input('id'));
+            $archivo->update([
+                'estado'         => RequisitoDocente::ESTADO_APROBADO,
+                'motivo_rechazo' => null,
+                'revisado_at'    => now(),
+            ]);
+        } else {
+            $archivo = RequisitoEstudiante::findOrFail($request->input('id'));
+            $archivo->update([
+                'estado'         => RequisitoEstudiante::ESTADO_APROBADO,
+                'motivo_rechazo' => null,
+                'revisado_at'    => now(),
+            ]);
+        }
 
         return back()->with('flash', [
             'type'    => 'success',
@@ -61,20 +87,32 @@ class AdmisionController extends Controller
         ]);
     }
 
-    public function rechazarRequisito(Request $request, RequisitoArchivo $archivo): RedirectResponse
+    public function rechazarRequisito(Request $request): RedirectResponse
     {
         $data = $request->validate([
+            'id'     => 'required|integer',
+            'tipo'   => 'required|string|in:estudiante,docente',
             'motivo' => 'required|string|min:5|max:500',
         ], [
             'motivo.required' => 'Debes indicar el motivo del rechazo para que el candidato pueda corregir.',
             'motivo.min'      => 'El motivo debe tener al menos 5 caracteres.',
         ]);
 
-        $archivo->update([
-            'estado'         => RequisitoArchivo::ESTADO_RECHAZADO,
-            'motivo_rechazo' => $data['motivo'],
-            'revisado_at'    => now(),
-        ]);
+        if ($data['tipo'] === 'docente') {
+            $archivo = RequisitoDocente::findOrFail($data['id']);
+            $archivo->update([
+                'estado'         => RequisitoDocente::ESTADO_RECHAZADO,
+                'motivo_rechazo' => $data['motivo'],
+                'revisado_at'    => now(),
+            ]);
+        } else {
+            $archivo = RequisitoEstudiante::findOrFail($data['id']);
+            $archivo->update([
+                'estado'         => RequisitoEstudiante::ESTADO_RECHAZADO,
+                'motivo_rechazo' => $data['motivo'],
+                'revisado_at'    => now(),
+            ]);
+        }
 
         return back()->with('flash', [
             'type'    => 'success',
@@ -82,23 +120,35 @@ class AdmisionController extends Controller
         ]);
     }
 
-    public function descargarRequisito(RequisitoArchivo $archivo): StreamedResponse
+    public function descargarRequisito(Request $request): StreamedResponse
     {
+        $tipo = $request->input('tipo', 'estudiante');
+
+        $archivo = $tipo === 'docente'
+            ? RequisitoDocente::findOrFail($request->input('id'))
+            : RequisitoEstudiante::findOrFail($request->input('id'));
+
         return Storage::disk('local')->download($archivo->ruta_archivo, $archivo->nombre_original);
     }
 
     public function solicitarCorreccionesEstudiante(CandidatoEstudiante $candidato): RedirectResponse
     {
+        $candidato->load('persona');
+
         return $this->solicitarCorrecciones($candidato);
     }
 
     public function solicitarCorreccionesDocente(CandidatoDocente $candidato): RedirectResponse
     {
+        $candidato->load('persona');
+
         return $this->solicitarCorrecciones($candidato);
     }
 
     public function aprobarCandidatoEstudiante(CandidatoEstudiante $candidato): RedirectResponse
     {
+        $candidato->load(['persona', 'postulacion.gestion']);
+
         if (! in_array($candidato->estado, [CandidatoEstudiante::ESTADO_EN_REVISION, CandidatoEstudiante::ESTADO_REQUIERE_CORRECCIONES], true)) {
             return back()->with('flash', ['type' => 'error', 'message' => 'Esta solicitud no puede ser aprobada en su estado actual.']);
         }
@@ -110,20 +160,36 @@ class AdmisionController extends Controller
             ]);
         }
 
-        $montoBs    = (float) config('sigacup.matricula.monto_bs');
-        $tasaCambio = (float) config('sigacup.matricula.tasa_bs_usd');
-        $montoUsd   = round($montoBs / $tasaCambio, 2);
+        $postulacion = $candidato->postulacion;
 
-        $candidato->update([
-            'estado'      => CandidatoEstudiante::ESTADO_APROBADO,
-            'aprobado_at' => now(),
-            'token_pago'  => Str::random(64),
-            'monto_bs'    => $montoBs,
-            'monto_usd'   => $montoUsd,
-            'tasa_cambio' => $tasaCambio,
-        ]);
+        if (! $postulacion) {
+            return back()->with('flash', ['type' => 'error', 'message' => 'El candidato no tiene una postulación activa.']);
+        }
 
-        Mail::to($candidato->email)->send(new EstudianteAprobadoConPago($candidato->fresh()));
+        $gestion  = $postulacion->gestion;
+        $montoBs  = (float) ($gestion?->parametro('monto_matricula_bs') ?? config('sigacup.matricula.monto_bs', 800));
+        $montoUsd = (float) ($gestion?->parametro('monto_matricula_usd') ?? $montoBs);
+
+        DB::transaction(function () use ($candidato, $postulacion, $montoBs, $montoUsd) {
+            $candidato->update(['estado' => CandidatoEstudiante::ESTADO_APROBADO]);
+
+            Pago::create([
+                'postulacion_id' => $postulacion->id,
+                'token_pago'     => Str::random(64),
+                'monto_bs'       => $montoBs,
+                'monto_usd'      => $montoUsd,
+                'tasa_cambio'    => $montoUsd > 0 ? round($montoBs / $montoUsd, 4) : 1.0,
+                'metodo'         => 'stripe',
+                'estado'         => Pago::ESTADO_PENDIENTE,
+            ]);
+
+            $postulacion->update(['estado_pago' => 'pendiente']);
+        });
+
+        $candidato->load('postulacion.pago');
+        $pago = $candidato->postulacion?->pago;
+
+        Mail::to($candidato->email)->send(new EstudianteAprobadoConPago($candidato, $pago));
 
         return back()->with('flash', [
             'type'    => 'success',
@@ -145,7 +211,6 @@ class AdmisionController extends Controller
 
         $candidato->update([
             'estado'         => CandidatoEstudiante::ESTADO_RECHAZADO,
-            'rechazado_at'   => now(),
             'motivo_rechazo' => $request->input('motivo'),
         ]);
 
@@ -157,6 +222,8 @@ class AdmisionController extends Controller
 
     public function aprobarCandidatoDocente(CandidatoDocente $candidato): RedirectResponse
     {
+        $candidato->load('persona');
+
         if (! in_array($candidato->estado, [CandidatoDocente::ESTADO_EN_REVISION, CandidatoDocente::ESTADO_REQUIERE_CORRECCIONES], true)) {
             return back()->with('flash', ['type' => 'error', 'message' => 'Esta solicitud no puede ser aprobada en su estado actual.']);
         }
@@ -171,27 +238,25 @@ class AdmisionController extends Controller
         $passwordTemporal = Str::random(12);
 
         $user = DB::transaction(function () use ($candidato, $passwordTemporal) {
+            $persona = $candidato->persona;
+
             $user = User::create([
-                'name'             => $candidato->apellido . ' ' . $candidato->nombres,
-                'email'            => $candidato->email,
-                'password'         => $passwordTemporal,
-                'role'             => UserRole::Docente,
-                'fecha_nacimiento' => $candidato->fecha_nacimiento,
-                'sexo'             => $candidato->sexo,
-                'telefono'         => $candidato->telefono,
-                'direccion'        => $candidato->direccion,
-                'username'         => 'tmp_' . uniqid(),
+                'persona_id' => $persona->id,
+                'name'       => $persona->apellido . ' ' . $persona->nombres,
+                'email'      => $persona->email,
+                'password'   => $passwordTemporal,
+                'role'       => UserRole::Docente,
+                'username'   => 'tmp_' . uniqid(),
             ]);
 
-            $apellido     = ucfirst(strtolower(Str::ascii($candidato->apellido)));
-            $primerNombre = ucfirst(strtolower(Str::ascii(Str::of($candidato->nombres)->explode(' ')->first())));
+            $apellido     = strtolower(Str::ascii($persona->apellido));
+            $primerNombre = strtolower(Str::ascii(Str::of($persona->nombres)->explode(' ')->first()));
             $user->username = $apellido . $primerNombre . $user->id;
             $user->save();
 
             $candidato->update([
-                'estado'      => CandidatoDocente::ESTADO_APROBADO,
-                'aprobado_at' => now(),
-                'user_id'     => $user->id,
+                'estado'  => CandidatoDocente::ESTADO_APROBADO,
+                'user_id' => $user->id,
             ]);
 
             return $user;
@@ -217,7 +282,6 @@ class AdmisionController extends Controller
 
         $candidato->update([
             'estado'         => CandidatoDocente::ESTADO_RECHAZADO,
-            'rechazado_at'   => now(),
             'motivo_rechazo' => $request->input('motivo'),
         ]);
 
@@ -254,19 +318,23 @@ class AdmisionController extends Controller
             ];
         })->values()->all();
 
+        $estadoRechazado = $tipo === 'docente'
+            ? RequisitoDocente::ESTADO_RECHAZADO
+            : RequisitoEstudiante::ESTADO_RECHAZADO;
+
         return Inertia::render('Admision/RevisarCandidato', [
-            'tipo' => $tipo,
-            'candidato' => $candidato->toArray() + [
+            'tipo'       => $tipo,
+            'candidato'  => array_merge($candidato->toArray(), [
                 'nombre_completo' => $candidato->nombre_completo,
-            ],
-            'requisitos' => $requisitos,
-            'puedeAprobar' => $this->todosRequisitosObligatoriosAprobados($candidato)
+            ]),
+            'requisitos'    => $requisitos,
+            'puedeAprobar'  => $this->todosRequisitosObligatoriosAprobados($candidato)
                 && in_array($candidato->estado, [
                     CandidatoEstudiante::ESTADO_EN_REVISION,
                     CandidatoEstudiante::ESTADO_REQUIERE_CORRECCIONES,
                 ], true),
             'tieneRechazados' => $candidato->requisitos()
-                ->where('estado', RequisitoArchivo::ESTADO_RECHAZADO)
+                ->where('estado', $estadoRechazado)
                 ->exists(),
         ]);
     }
@@ -274,10 +342,13 @@ class AdmisionController extends Controller
     private function todosRequisitosObligatoriosAprobados(Model $candidato): bool
     {
         $obligatorios = RequisitosCatalogo::codigosObligatorios($candidato);
+        $estadoAprobado = $candidato instanceof CandidatoEstudiante
+            ? RequisitoEstudiante::ESTADO_APROBADO
+            : RequisitoDocente::ESTADO_APROBADO;
 
         $aprobados = $candidato->requisitos()
             ->whereIn('codigo', $obligatorios)
-            ->where('estado', RequisitoArchivo::ESTADO_APROBADO)
+            ->where('estado', $estadoAprobado)
             ->pluck('codigo')
             ->all();
 
@@ -290,8 +361,12 @@ class AdmisionController extends Controller
             return back()->with('flash', ['type' => 'error', 'message' => 'Solo se pueden solicitar correcciones desde el estado "En revisión".']);
         }
 
+        $estadoRechazado = $candidato instanceof CandidatoEstudiante
+            ? RequisitoEstudiante::ESTADO_RECHAZADO
+            : RequisitoDocente::ESTADO_RECHAZADO;
+
         $rechazados = $candidato->requisitos()
-            ->where('estado', RequisitoArchivo::ESTADO_RECHAZADO)
+            ->where('estado', $estadoRechazado)
             ->get();
 
         if ($rechazados->isEmpty()) {

@@ -23,8 +23,8 @@ Route::middleware(['auth', 'verified'])->prefix('administracion')->group(functio
         Route::patch('candidato-docente/{candidato}/rechazar', [AdmisionController::class, 'rechazarCandidatoDocente'])->name('candidato-docente.rechazar');
         Route::patch('candidato-docente/{candidato}/solicitar-correcciones', [AdmisionController::class, 'solicitarCorreccionesDocente'])->name('candidato-docente.solicitar-correcciones');
 
-        Route::patch('requisitos/{archivo}/aprobar', [AdmisionController::class, 'aprobarRequisito'])->name('requisitos.aprobar');
-        Route::patch('requisitos/{archivo}/rechazar', [AdmisionController::class, 'rechazarRequisito'])->name('requisitos.rechazar');
-        Route::get('requisitos/{archivo}/descargar', [AdmisionController::class, 'descargarRequisito'])->name('requisitos.descargar');
+        Route::patch('requisitos/aprobar', [AdmisionController::class, 'aprobarRequisito'])->name('requisitos.aprobar');
+        Route::patch('requisitos/rechazar', [AdmisionController::class, 'rechazarRequisito'])->name('requisitos.rechazar');
+        Route::get('requisitos/descargar', [AdmisionController::class, 'descargarRequisito'])->name('requisitos.descargar');
     });
 });

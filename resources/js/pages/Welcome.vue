@@ -3,7 +3,16 @@ import { computed, ref } from 'vue';
 import { Head, Link, useForm } from '@inertiajs/vue3';
 import { dashboard, login } from '@/routes';
 
-const carreras = [
+interface CarreraDB {
+    id: number;
+    nombre: string;
+}
+
+const props = defineProps<{
+    carreras: CarreraDB[];
+}>();
+
+const carrerasDisplay = [
     { nombre: 'Ing. en Sistemas', icono: '💻' },
     { nombre: 'Ing. Informática', icono: '🖥️' },
     { nombre: 'Ing. en Robótica', icono: '🤖' },
@@ -38,24 +47,17 @@ const distinciones = [
 // ── Registro de candidato ───────────────────────────────────────────────
 const tipoRegistro = ref<'estudiante' | 'docente'>('estudiante');
 
-const carrerasOpciones = [
-    { value: 'sistemas',    label: 'Ing. en Sistemas' },
-    { value: 'informatica', label: 'Ing. Informática' },
-    { value: 'redes',       label: 'Ing. en Redes y Telecomunicaciones' },
-    { value: 'robotica',    label: 'Ing. en Robótica' },
-];
-
 const form = useForm({
-    ci:                     '',
-    apellido:               '',
-    nombres:                '',
-    fecha_nacimiento:       '',
-    sexo:                   '',
-    telefono:               '',
-    email:                  '',
-    direccion:              '',
-    carrera_primera_opcion: '',
-    carrera_segunda_opcion: '',
+    ci:               '',
+    apellido:         '',
+    nombres:          '',
+    fecha_nacimiento: '',
+    sexo:             '',
+    telefono:         '',
+    email:            '',
+    direccion:        '',
+    carrera1_id:      null as number | null,
+    carrera2_id:      null as number | null,
 });
 
 // Tema visual: rojo para estudiante, azul para docente
@@ -247,7 +249,7 @@ function submit() {
 
                 <!-- Cards de carreras -->
                 <div class="grid grid-cols-2 gap-4">
-                    <div v-for="carrera in carreras" :key="carrera.nombre"
+                    <div v-for="carrera in carrerasDisplay" :key="carrera.nombre"
                          class="group rounded-xl border border-gray-100 bg-gray-50 p-5 text-center shadow-sm
                                 transition duration-200 hover:border-[#073b75] hover:bg-[#073b75] hover:shadow-md">
                         <div class="mb-2 text-4xl">{{ carrera.icono }}</div>
@@ -525,21 +527,21 @@ function submit() {
                         <div class="flex flex-col gap-1.5">
                             <label class="text-sm font-medium text-gray-700">1ra opción <span class="text-red-500">*</span></label>
                             <select
-                                v-model="form.carrera_primera_opcion"
+                                v-model="form.carrera1_id"
                                 required
                                 class="rounded-md border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 shadow-sm focus:outline-none focus:ring-2 focus:ring-[#c70e0a]"
-                                :class="{ 'border-red-400': form.errors.carrera_primera_opcion }"
+                                :class="{ 'border-red-400': form.errors.carrera1_id }"
                             >
-                                <option value="" disabled>Selecciona una carrera</option>
+                                <option :value="null" disabled>Selecciona una carrera</option>
                                 <option
-                                    v-for="c in carrerasOpciones"
-                                    :key="c.value"
-                                    :value="c.value"
-                                    :disabled="c.value === form.carrera_segunda_opcion"
-                                >{{ c.label }}</option>
+                                    v-for="c in carreras"
+                                    :key="c.id"
+                                    :value="c.id"
+                                    :disabled="c.id === form.carrera2_id"
+                                >{{ c.nombre }}</option>
                             </select>
-                            <p v-if="form.errors.carrera_primera_opcion" class="text-xs text-red-600">
-                                {{ form.errors.carrera_primera_opcion }}
+                            <p v-if="form.errors.carrera1_id" class="text-xs text-red-600">
+                                {{ form.errors.carrera1_id }}
                             </p>
                         </div>
 
@@ -547,21 +549,21 @@ function submit() {
                         <div class="flex flex-col gap-1.5">
                             <label class="text-sm font-medium text-gray-700">2da opción <span class="text-red-500">*</span></label>
                             <select
-                                v-model="form.carrera_segunda_opcion"
+                                v-model="form.carrera2_id"
                                 required
                                 class="rounded-md border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 shadow-sm focus:outline-none focus:ring-2 focus:ring-[#c70e0a]"
-                                :class="{ 'border-red-400': form.errors.carrera_segunda_opcion }"
+                                :class="{ 'border-red-400': form.errors.carrera2_id }"
                             >
-                                <option value="" disabled>Selecciona una carrera</option>
+                                <option :value="null" disabled>Selecciona una carrera</option>
                                 <option
-                                    v-for="c in carrerasOpciones"
-                                    :key="c.value"
-                                    :value="c.value"
-                                    :disabled="c.value === form.carrera_primera_opcion"
-                                >{{ c.label }}</option>
+                                    v-for="c in carreras"
+                                    :key="c.id"
+                                    :value="c.id"
+                                    :disabled="c.id === form.carrera1_id"
+                                >{{ c.nombre }}</option>
                             </select>
-                            <p v-if="form.errors.carrera_segunda_opcion" class="text-xs text-red-600">
-                                {{ form.errors.carrera_segunda_opcion }}
+                            <p v-if="form.errors.carrera2_id" class="text-xs text-red-600">
+                                {{ form.errors.carrera2_id }}
                             </p>
                         </div>
 

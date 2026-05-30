@@ -10,13 +10,16 @@ return new class extends Migration
     {
         Schema::table('users', function (Blueprint $table) {
             $table->string('username')->unique()->after('name');
+            $table->string('role')->default('administrador')->after('username');
+            $table->unsignedTinyInteger('intentos_fallidos')->default(0)->after('role');
+            $table->timestamp('bloqueado_hasta')->nullable()->after('intentos_fallidos');
         });
     }
 
     public function down(): void
     {
         Schema::table('users', function (Blueprint $table) {
-            $table->dropColumn('username');
+            $table->dropColumn(['username', 'role', 'intentos_fallidos', 'bloqueado_hasta']);
         });
     }
 };

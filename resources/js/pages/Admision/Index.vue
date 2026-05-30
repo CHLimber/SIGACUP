@@ -47,13 +47,6 @@ defineOptions({
 const tab = ref<'estudiantes' | 'docentes'>('estudiantes');
 const filtroEstado = ref<'activos' | 'todos'>('activos');
 
-const carreraLabels: Record<string, string> = {
-    sistemas:    'Ing. Sistemas',
-    informatica: 'Ing. Informática',
-    redes:       'Ing. Redes',
-    robotica:    'Ing. Robótica',
-};
-
 const estadoConfig: Record<Estado, { label: string; clases: string }> = {
     pendiente:               { label: 'Sin enviar',             clases: 'bg-gray-100 text-gray-700' },
     en_revision:             { label: 'En revisión',            clases: 'bg-blue-100 text-blue-700' },
@@ -62,6 +55,12 @@ const estadoConfig: Record<Estado, { label: string; clases: string }> = {
     pagado:                  { label: 'Pagado',                 clases: 'bg-green-100 text-green-700' },
     rechazado:               { label: 'Rechazado',              clases: 'bg-red-100 text-red-700' },
 };
+
+const estadoFallback = { label: 'Desconocido', clases: 'bg-gray-100 text-gray-500' };
+
+function infoEstado(e: string) {
+    return estadoConfig[e as Estado] ?? estadoFallback;
+}
 
 const estadosActivos: Estado[] = ['en_revision', 'requiere_correcciones'];
 
@@ -213,15 +212,15 @@ function revisar(tipo: 'estudiante' | 'docente', id: number) {
                             <p class="text-xs text-gray-500">{{ fmtFecha(c.fecha_nacimiento) }} · {{ c.email || 'sin email' }}</p>
                         </td>
                         <td class="px-5 py-4 text-xs">
-                            <p>{{ carreraLabels[c.carrera_primera_opcion] }}</p>
-                            <p class="text-gray-500">{{ carreraLabels[c.carrera_segunda_opcion] }}</p>
+                            <p>{{ c.carrera_primera_opcion }}</p>
+                            <p class="text-gray-500">{{ c.carrera_segunda_opcion }}</p>
                         </td>
                         <td class="px-5 py-4">
                             <span
                                 class="inline-flex rounded-full px-2.5 py-0.5 text-xs font-semibold"
-                                :class="estadoConfig[c.estado].clases"
+                                :class="infoEstado(c.estado).clases"
                             >
-                                {{ estadoConfig[c.estado].label }}
+                                {{ infoEstado(c.estado).label }}
                             </span>
                         </td>
                         <td class="px-5 py-4 text-xs text-gray-600">
@@ -282,9 +281,9 @@ function revisar(tipo: 'estudiante' | 'docente', id: number) {
                         <td class="px-5 py-4">
                             <span
                                 class="inline-flex rounded-full px-2.5 py-0.5 text-xs font-semibold"
-                                :class="estadoConfig[c.estado].clases"
+                                :class="infoEstado(c.estado).clases"
                             >
-                                {{ estadoConfig[c.estado].label }}
+                                {{ infoEstado(c.estado).label }}
                             </span>
                         </td>
                         <td class="px-5 py-4 text-xs text-gray-600">

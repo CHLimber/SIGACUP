@@ -10,13 +10,13 @@ return new class extends Migration
     {
         Schema::create('parametro', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('gestion_id')->constrained('gestion')->cascadeOnDelete();
+            $table->foreignId('gestion_id')->constrained('gestion')->restrictOnDelete();
             $table->string('clave', 80);
             $table->string('valor', 255);
-            $table->string('descripcion', 255)->nullable();
             $table->timestamps();
 
             $table->unique(['gestion_id', 'clave']);
+            $table->foreign('clave')->references('clave')->on('parametro_catalogo')->restrictOnDelete();
         });
     }
 

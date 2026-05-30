@@ -14,15 +14,9 @@ class RequisitosCatalogo
     public const TAMANO_MAX_KB = 4096;
 
     public const ESTUDIANTE = [
-        'ci_anverso' => [
-            'nombre'      => 'CI — anverso',
-            'descripcion' => 'Foto o escaneo del anverso de tu Cédula de Identidad. Debe ser legible.',
-            'mimes'       => self::MIMES_DOCUMENTO,
-            'obligatorio' => true,
-        ],
-        'ci_reverso' => [
-            'nombre'      => 'CI — reverso',
-            'descripcion' => 'Foto o escaneo del reverso de tu Cédula de Identidad.',
+        'fotocopia_ci' => [
+            'nombre'      => 'Fotocopia de CI',
+            'descripcion' => 'Fotocopia o escaneo legible de ambas caras de tu Cédula de Identidad en un solo archivo.',
             'mimes'       => self::MIMES_DOCUMENTO,
             'obligatorio' => true,
         ],
@@ -32,9 +26,21 @@ class RequisitosCatalogo
             'mimes'       => self::MIMES_DOCUMENTO,
             'obligatorio' => true,
         ],
-        'diploma_bachiller' => [
-            'nombre'      => 'Diploma de Bachiller o Libreta de 6.º de secundaria',
-            'descripcion' => 'Si aún no tienes el diploma, sube tu libreta del último año aprobado.',
+        'titulo_bachiller' => [
+            'nombre'      => 'Título de Bachiller',
+            'descripcion' => 'Diploma de bachiller emitido por el colegio o unidad educativa.',
+            'mimes'       => self::MIMES_DOCUMENTO,
+            'obligatorio' => true,
+        ],
+        'certificado_colegio' => [
+            'nombre'      => 'Certificado del colegio',
+            'descripcion' => 'Certificado de estudios o constancia emitida por la unidad educativa.',
+            'mimes'       => self::MIMES_DOCUMENTO,
+            'obligatorio' => true,
+        ],
+        'libreta_ultimo_anio' => [
+            'nombre'      => 'Libreta del último año',
+            'descripcion' => 'Libreta de calificaciones del último año de secundaria (6.º de secundaria).',
             'mimes'       => self::MIMES_DOCUMENTO,
             'obligatorio' => true,
         ],
@@ -47,15 +53,9 @@ class RequisitosCatalogo
     ];
 
     public const DOCENTE = [
-        'ci_anverso' => [
-            'nombre'      => 'CI — anverso',
-            'descripcion' => 'Foto o escaneo del anverso de tu Cédula de Identidad.',
-            'mimes'       => self::MIMES_DOCUMENTO,
-            'obligatorio' => true,
-        ],
-        'ci_reverso' => [
-            'nombre'      => 'CI — reverso',
-            'descripcion' => 'Foto o escaneo del reverso de tu Cédula de Identidad.',
+        'fotocopia_ci' => [
+            'nombre'      => 'Fotocopia de CI',
+            'descripcion' => 'Fotocopia o escaneo legible de ambas caras de tu Cédula de Identidad en un solo archivo.',
             'mimes'       => self::MIMES_DOCUMENTO,
             'obligatorio' => true,
         ],
@@ -71,9 +71,21 @@ class RequisitosCatalogo
             'mimes'       => self::MIMES_DOCUMENTO,
             'obligatorio' => true,
         ],
-        'certificados_academicos' => [
-            'nombre'      => 'Certificados académicos (opcional)',
-            'descripcion' => 'Cursos, postgrados, especializaciones o certificaciones (un solo archivo, puedes unirlos en PDF).',
+        'diploma_academico' => [
+            'nombre'      => 'Diploma académico',
+            'descripcion' => 'Diploma de licenciatura o equivalente emitido por la institución.',
+            'mimes'       => self::MIMES_DOCUMENTO,
+            'obligatorio' => true,
+        ],
+        'certificado_maestria' => [
+            'nombre'      => 'Certificado de maestría (opcional)',
+            'descripcion' => 'Certificado o diploma de maestría, si posees este grado académico.',
+            'mimes'       => self::MIMES_DOCUMENTO,
+            'obligatorio' => false,
+        ],
+        'certificado_diplomado' => [
+            'nombre'      => 'Certificado de diplomado (opcional)',
+            'descripcion' => 'Certificado de diplomado, si posees esta certificación.',
             'mimes'       => self::MIMES_DOCUMENTO,
             'obligatorio' => false,
         ],

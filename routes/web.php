@@ -1,11 +1,17 @@
 <?php
 
+use App\AdministracionSistema\Models\Carrera;
 use App\InscripcionPagos\Controllers\PortalPagoController;
 use App\RegistroPublico\Controllers\PortalCandidatoController;
 use App\RegistroPublico\Controllers\RegistroController;
 use Illuminate\Support\Facades\Route;
+use Inertia\Inertia;
 
-Route::inertia('/', 'Welcome')->name('home');
+Route::get('/', function () {
+    return Inertia::render('Welcome', [
+        'carreras' => Carrera::orderBy('nombre')->get(['id', 'nombre']),
+    ]);
+})->name('home');
 
 Route::post('/registro/estudiante', [RegistroController::class, 'storeCandidatoEstudiante'])->name('registro.estudiante');
 Route::post('/registro/docente', [RegistroController::class, 'storeCandidatoDocente'])->name('registro.docente');
@@ -20,9 +26,8 @@ Route::prefix('candidato/{token}')->name('portal.candidato.')->group(function ()
 
 Route::prefix('matricula/{token}')->name('portal.matricula.')->group(function () {
     Route::get('/', [PortalPagoController::class, 'show'])->name('show');
-    Route::post('iniciar', [PortalPagoController::class, 'iniciar'])->name('iniciar');
-    Route::get('exitoso', [PortalPagoController::class, 'exitoso'])->name('exitoso');
-    Route::get('cancelado', [PortalPagoController::class, 'cancelado'])->name('cancelado');
+    Route::post('payment-intent', [PortalPagoController::class, 'crearPaymentIntent'])->name('payment-intent');
+    Route::post('confirmar', [PortalPagoController::class, 'confirmar'])->name('confirmar');
     Route::get('comprobante', [PortalPagoController::class, 'comprobante'])->name('comprobante');
 });
 

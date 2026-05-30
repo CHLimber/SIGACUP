@@ -4,7 +4,7 @@ import { computed } from 'vue';
 import { dashboard } from '@/routes';
 
 type EstadoArchivo = 'pendiente_revision' | 'aprobado' | 'rechazado';
-type EstadoCandidato = 'pendiente' | 'en_revision' | 'requiere_correcciones' | 'aprobado_pendiente_pago' | 'pagado' | 'rechazado';
+type EstadoCandidato = 'pendiente' | 'en_revision' | 'requiere_correcciones' | 'aprobado' | 'aprobado_pendiente_pago' | 'pagado' | 'rechazado';
 
 interface ArchivoRequisito {
     id: number;
@@ -64,6 +64,7 @@ const estadoCandidatoConfig: Record<EstadoCandidato, { label: string; color: str
     pendiente:               { label: 'Pendiente de envío',     color: 'bg-yellow-100 text-yellow-700' },
     en_revision:             { label: 'En revisión',            color: 'bg-blue-100 text-blue-700'    },
     requiere_correcciones:   { label: 'Requiere correcciones',  color: 'bg-orange-100 text-orange-700' },
+    aprobado:                { label: 'Aprobado',               color: 'bg-green-100 text-green-700'  },
     aprobado_pendiente_pago: { label: 'Esperando pago',         color: 'bg-amber-100 text-amber-700'  },
     pagado:                  { label: 'Pagado',                 color: 'bg-green-100 text-green-700'  },
     rechazado:               { label: 'Rechazado',              color: 'bg-red-100 text-red-700'      },
@@ -75,13 +76,6 @@ const estadoArchivoConfig: Record<EstadoArchivo, { label: string; color: string;
     rechazado:          { label: 'Rechazado',             color: 'bg-red-100 text-red-700',     icono: '✗' },
 };
 
-const carreraLabels: Record<string, string> = {
-    sistemas:    'Ing. Sistemas',
-    informatica: 'Ing. Informática',
-    redes:       'Ing. Redes',
-    robotica:    'Ing. Robótica',
-};
-
 const totales = computed(() => ({
     aprobados:  props.requisitos.filter(r => r.archivo?.estado === 'aprobado').length,
     rechazados: props.requisitos.filter(r => r.archivo?.estado === 'rechazado').length,
@@ -90,7 +84,8 @@ const totales = computed(() => ({
 }));
 
 const cerrado = computed(() =>
-    props.candidato.estado === 'aprobado_pendiente_pago'
+    props.candidato.estado === 'aprobado'
+    || props.candidato.estado === 'aprobado_pendiente_pago'
     || props.candidato.estado === 'pagado'
     || props.candidato.estado === 'rechazado',
 );
@@ -106,12 +101,12 @@ function fmtTamano(bytes: number): string {
 }
 
 function urlDescargar(archivoId: number): string {
-    return `/administracion/admision/requisitos/${archivoId}/descargar`;
+    return `/administracion/admision/requisitos/descargar?tipo=${props.tipo}&id=${archivoId}`;
 }
 
 function aprobarRequisito(req: RequisitoItem) {
     if (!req.archivo) return;
-    router.patch(`/administracion/admision/requisitos/${req.archivo.id}/aprobar`, {}, { preserveScroll: true });
+    router.patch('/administracion/admision/requisitos/aprobar', { tipo: props.tipo, id: req.archivo.id }, { preserveScroll: true });
 }
 
 function rechazarRequisito(req: RequisitoItem) {
@@ -123,8 +118,8 @@ function rechazarRequisito(req: RequisitoItem) {
         return;
     }
     router.patch(
-        `/administracion/admision/requisitos/${req.archivo.id}/rechazar`,
-        { motivo: motivo.trim() },
+        '/administracion/admision/requisitos/rechazar',
+        { tipo: props.tipo, id: req.archivo.id, motivo: motivo.trim() },
         { preserveScroll: true },
     );
 }
@@ -193,8 +188,8 @@ function volver() {
                         <p><strong>Teléfono:</strong> {{ candidato.telefono }}</p>
                         <p class="sm:col-span-2"><strong>Dirección:</strong> {{ candidato.direccion }}</p>
                         <template v-if="tipo === 'estudiante'">
-                            <p><strong>1ra opción:</strong> {{ carreraLabels[candidato.carrera_primera_opcion!] || candidato.carrera_primera_opcion }}</p>
-                            <p><strong>2da opción:</strong> {{ carreraLabels[candidato.carrera_segunda_opcion!] || candidato.carrera_segunda_opcion }}</p>
+                            <p><strong>1ra opción:</strong> {{ candidato.carrera_primera_opcion }}</p>
+                            <p><strong>2da opción:</strong> {{ candidato.carrera_segunda_opcion }}</p>
                         </template>
                     </div>
                 </div>

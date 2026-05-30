@@ -23,19 +23,13 @@ class GestionController extends Controller
     ];
 
     private const PARAM_CLAVES = [
+        'monto_matricula_bs',
+        'monto_matricula_usd',
         'capacidad_max_grupo',
         'peso_examen_1',
         'peso_examen_2',
         'peso_examen_3',
         'nota_minima_aprobacion',
-    ];
-
-    private const PARAM_DESCRIPCIONES = [
-        'capacidad_max_grupo'    => 'Capacidad máxima de alumnos por grupo',
-        'peso_examen_1'          => 'Peso % del primer parcial',
-        'peso_examen_2'          => 'Peso % del segundo parcial',
-        'peso_examen_3'          => 'Peso % del examen final',
-        'nota_minima_aprobacion' => 'Nota mínima por materia para aprobar el CUP',
     ];
 
     public function index(): Response
@@ -58,10 +52,9 @@ class GestionController extends Controller
 
         foreach (self::PARAM_CLAVES as $clave) {
             Parametro::create([
-                'gestion_id'  => $gestion->id,
-                'clave'       => $clave,
-                'valor'       => (string) $validated[$clave],
-                'descripcion' => self::PARAM_DESCRIPCIONES[$clave],
+                'gestion_id' => $gestion->id,
+                'clave'      => $clave,
+                'valor'      => (string) $validated[$clave],
             ]);
         }
 
