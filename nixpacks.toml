@@ -1,8 +1,5 @@
 providers = ["php", "node"]
 
-[phases.setup]
-nixPkgs = ["nodejs_20"]
-
 [phases.install]
 cmds = [
     "composer install --no-dev --optimize-autoloader --no-interaction",
