@@ -1,7 +1,7 @@
 # syntax=docker/dockerfile:1.7
 
 # ---------- Etapa 1: build (PHP + Composer + Node) ----------
-FROM php:8.3-cli-bookworm AS build
+FROM php:8.4-cli-bookworm AS build
 
 ENV DEBIAN_FRONTEND=noninteractive
 
@@ -51,7 +51,7 @@ RUN composer dump-autoload --optimize --no-dev \
     && rm -rf node_modules
 
 # ---------- Etapa 2: runtime (PHP) ----------
-FROM php:8.3-cli-bookworm AS runtime
+FROM php:8.4-cli-bookworm AS runtime
 
 ENV DEBIAN_FRONTEND=noninteractive
 
