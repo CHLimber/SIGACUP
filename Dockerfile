@@ -1,42 +1,61 @@
 # syntax=docker/dockerfile:1.7
 
-# ---------- Etapa 1: assets (Node) ----------
-FROM node:20-bookworm-slim AS assets
+# ---------- Etapa 1: build (PHP + Composer + Node) ----------
+FROM php:8.3-cli-bookworm AS build
 
-WORKDIR /app
+ENV DEBIAN_FRONTEND=noninteractive
 
-COPY package.json package-lock.json* ./
-RUN npm ci
+RUN apt-get update && apt-get install -y --no-install-recommends \
+        ca-certificates \
+        curl \
+        git \
+        gnupg \
+        unzip \
+        libpq-dev \
+        libicu-dev \
+        libzip-dev \
+        libonig-dev \
+        libxml2-dev \
+        zlib1g-dev \
+    && docker-php-ext-install \
+        pdo_pgsql \
+        pgsql \
+        intl \
+        zip \
+        bcmath \
+    && curl -fsSL https://deb.nodesource.com/setup_20.x | bash - \
+    && apt-get install -y --no-install-recommends nodejs \
+    && apt-get clean \
+    && rm -rf /var/lib/apt/lists/*
 
-COPY resources ./resources
-COPY public ./public
-COPY vite.config.* tsconfig*.json ./
-COPY routes ./routes
-COPY app ./app
-
-RUN npm run build
-
-# ---------- Etapa 2: vendor (Composer) ----------
-FROM composer:2 AS vendor
+COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
 
 WORKDIR /app
 
 COPY composer.json composer.lock ./
 RUN composer install \
-    --no-dev \
-    --no-interaction \
-    --no-scripts \
-    --prefer-dist \
-    --optimize-autoloader
+        --no-dev \
+        --no-interaction \
+        --no-scripts \
+        --prefer-dist \
+        --optimize-autoloader \
+        --no-autoloader
 
-# ---------- Etapa 3: runtime (PHP) ----------
+COPY package.json package-lock.json* ./
+RUN npm ci
+
+COPY . .
+
+RUN composer dump-autoload --optimize --no-dev \
+    && npm run build \
+    && rm -rf node_modules
+
+# ---------- Etapa 2: runtime (PHP) ----------
 FROM php:8.3-cli-bookworm AS runtime
 
 ENV DEBIAN_FRONTEND=noninteractive
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
-        git \
-        unzip \
         libpq-dev \
         libicu-dev \
         libzip-dev \
@@ -55,10 +74,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 
 WORKDIR /app
 
-COPY . .
-
-COPY --from=vendor /app/vendor ./vendor
-COPY --from=assets /app/public/build ./public/build
+COPY --from=build /app /app
 
 RUN chmod +x start.sh \
     && mkdir -p storage/app/public \
