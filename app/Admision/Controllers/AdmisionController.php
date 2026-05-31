@@ -4,6 +4,7 @@ namespace App\Admision\Controllers;
 
 use App\Enums\UserRole;
 use App\GestionDocentes\Models\CandidatoDocente;
+use App\GestionDocentes\Models\Docente;
 use App\GestionEstudiantes\Models\CandidatoEstudiante;
 use App\GestionEstudiantes\Models\Postulacion;
 use App\Http\Controllers\Controller;
@@ -166,19 +167,18 @@ class AdmisionController extends Controller
             return back()->with('flash', ['type' => 'error', 'message' => 'El candidato no tiene una postulación activa.']);
         }
 
-        $gestion  = $postulacion->gestion;
-        $montoBs  = (float) ($gestion?->parametro('monto_matricula_bs') ?? config('sigacup.matricula.monto_bs', 800));
-        $montoUsd = (float) ($gestion?->parametro('monto_matricula_usd') ?? $montoBs);
+        $gestion = $postulacion->gestion;
+        $montoBs = (float) ($gestion?->parametro('monto_matricula_bs') ?? config('sigacup.matricula.monto_bs', 800));
 
-        DB::transaction(function () use ($candidato, $postulacion, $montoBs, $montoUsd) {
+        DB::transaction(function () use ($candidato, $postulacion, $montoBs) {
             $candidato->update(['estado' => CandidatoEstudiante::ESTADO_APROBADO]);
 
             Pago::create([
                 'postulacion_id' => $postulacion->id,
                 'token_pago'     => Str::random(64),
                 'monto_bs'       => $montoBs,
-                'monto_usd'      => $montoUsd,
-                'tasa_cambio'    => $montoUsd > 0 ? round($montoBs / $montoUsd, 4) : 1.0,
+                'monto_usd'      => $montoBs,
+                'tasa_cambio'    => 1.0,
                 'metodo'         => 'stripe',
                 'estado'         => Pago::ESTADO_PENDIENTE,
             ]);
@@ -235,6 +235,13 @@ class AdmisionController extends Controller
             ]);
         }
 
+        if (empty($candidato->titulo) || $candidato->experiencia_anios === null) {
+            return back()->with('flash', [
+                'type'    => 'error',
+                'message' => 'El candidato no completó sus datos profesionales (título y años de experiencia).',
+            ]);
+        }
+
         $passwordTemporal = Str::random(12);
 
         $user = DB::transaction(function () use ($candidato, $passwordTemporal) {
@@ -253,6 +260,14 @@ class AdmisionController extends Controller
             $primerNombre = strtolower(Str::ascii(Str::of($persona->nombres)->explode(' ')->first()));
             $user->username = $apellido . $primerNombre . $user->id;
             $user->save();
+
+            Docente::create([
+                'user_id'           => $user->id,
+                'titulo'            => $candidato->titulo,
+                'experiencia_anios' => $candidato->experiencia_anios,
+                'tiene_diplomado'   => (bool) $candidato->tiene_diplomado,
+                'tiene_maestria'    => (bool) $candidato->tiene_maestria,
+            ]);
 
             $candidato->update([
                 'estado'  => CandidatoDocente::ESTADO_APROBADO,
@@ -288,6 +303,60 @@ class AdmisionController extends Controller
         return back()->with('flash', [
             'type'    => 'success',
             'message' => "Solicitud de {$candidato->apellido} {$candidato->nombres} rechazada definitivamente.",
+        ]);
+    }
+
+    public function eliminarCandidatoEstudiante(CandidatoEstudiante $candidato): RedirectResponse
+    {
+        $nombre = "{$candidato->apellido} {$candidato->nombres}";
+
+        $candidato->load('requisitos', 'postulaciones.pago');
+
+        DB::transaction(function () use ($candidato) {
+            foreach ($candidato->requisitos as $requisito) {
+                Storage::disk('local')->delete($requisito->ruta_archivo);
+            }
+            Storage::disk('local')->deleteDirectory("requisitos/estudiantes/{$candidato->id}");
+
+            foreach ($candidato->postulaciones as $postulacion) {
+                $postulacion->pago?->delete();
+                $postulacion->delete();
+            }
+
+            $candidato->requisitos()->delete();
+            $candidato->delete();
+        });
+
+        return redirect()->route('admision.index')->with('flash', [
+            'type'    => 'success',
+            'message' => "Candidato {$nombre} eliminado correctamente.",
+        ]);
+    }
+
+    public function eliminarCandidatoDocente(CandidatoDocente $candidato): RedirectResponse
+    {
+        $nombre = "{$candidato->apellido} {$candidato->nombres}";
+
+        $candidato->load('requisitos');
+
+        DB::transaction(function () use ($candidato) {
+            foreach ($candidato->requisitos as $requisito) {
+                Storage::disk('local')->delete($requisito->ruta_archivo);
+            }
+            Storage::disk('local')->deleteDirectory("requisitos/docentes/{$candidato->id}");
+
+            $candidato->requisitos()->delete();
+
+            if ($candidato->user_id) {
+                User::destroy($candidato->user_id);
+            }
+
+            $candidato->delete();
+        });
+
+        return redirect()->route('admision.index')->with('flash', [
+            'type'    => 'success',
+            'message' => "Candidato docente {$nombre} eliminado correctamente.",
         ]);
     }
 

@@ -2,6 +2,7 @@
 import { Head, router } from '@inertiajs/vue3';
 import { loadStripe, type Stripe, type StripeElements, type StripePaymentElement } from '@stripe/stripe-js';
 import { onMounted, ref } from 'vue';
+import { CheckCircle } from 'lucide-vue-next';
 
 interface CandidatoData {
     nombre_completo: string;
@@ -138,7 +139,7 @@ function fmtBs(v: number): string {
                 <!-- Header verde aprobado -->
                 <div class="bg-green-500 px-6 py-4 text-white">
                     <div class="flex items-center gap-2">
-                        <span class="text-2xl">✓</span>
+                        <CheckCircle class="h-6 w-6" />
                         <div>
                             <p class="text-sm font-semibold uppercase tracking-wider opacity-90">Solicitud aprobada</p>
                             <p class="text-xs opacity-80">Completa el pago para recibir tus credenciales de acceso.</p>

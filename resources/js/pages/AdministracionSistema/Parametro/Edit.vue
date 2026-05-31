@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { Head, Link, useForm } from '@inertiajs/vue3';
 import { computed } from 'vue';
+import { Check, X } from 'lucide-vue-next';
 import { dashboard } from '@/routes';
 
 interface Gestion {
@@ -174,7 +175,7 @@ function submit() {
                             ? 'bg-green-50 text-green-700 border border-green-200'
                             : 'bg-red-50 text-red-700 border border-red-200'"
                     >
-                        <span class="text-base">{{ sumaOk ? '✓' : '✗' }}</span>
+                        <component :is="sumaOk ? Check : X" class="h-4 w-4" />
                         Suma actual: <strong>{{ sumaPesos }} %</strong>
                         <span v-if="!sumaOk" class="text-xs">(debe ser 100 %)</span>
                     </div>

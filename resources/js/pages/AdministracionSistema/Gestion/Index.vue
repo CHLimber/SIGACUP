@@ -1,5 +1,13 @@
 <script setup lang="ts">
 import { Head, Link, router } from '@inertiajs/vue3';
+import { MoreHorizontal, Pencil, Users, ArrowRight, Trash2 } from 'lucide-vue-next';
+import {
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuSeparator,
+    DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import { dashboard } from '@/routes';
 
 interface Gestion {
@@ -51,10 +59,15 @@ function eliminar(g: Gestion) {
     router.delete(`/administracion/gestiones/${g.id}`);
 }
 
+const MESES = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic'];
+
 function fmt(fecha: string | null): string {
     if (!fecha) return '—';
-    const [y, m, d] = fecha.split('-');
-    return `${d}/${m}/${y}`;
+    const soloFecha = fecha.split('T')[0];
+    const [y, m, d] = soloFecha.split('-');
+    const mesIdx = Number(m) - 1;
+    if (!y || !d || Number.isNaN(mesIdx) || !MESES[mesIdx]) return soloFecha;
+    return `${Number(d)} ${MESES[mesIdx]} ${y}`;
 }
 </script>
 
@@ -150,31 +163,60 @@ function fmt(fecha: string | null): string {
 
                         <!-- Acciones -->
                         <td class="px-5 py-4 text-right">
-                            <div class="inline-flex items-center gap-2">
-                                <Link
-                                    v-if="g.estado !== 'cerrada'"
-                                    :href="`/administracion/gestiones/${g.id}/edit`"
-                                    class="rounded-md border border-gray-300 px-3 py-1.5 text-xs font-medium text-gray-700 transition hover:bg-gray-50"
+                            <DropdownMenu>
+                                <DropdownMenuTrigger
+                                    class="inline-flex h-8 w-8 items-center justify-center rounded-md border border-gray-200 text-gray-500 transition hover:bg-gray-100 hover:text-gray-900 focus:outline-none focus:ring-2 focus:ring-gray-300"
+                                    aria-label="Acciones"
                                 >
-                                    Editar
-                                </Link>
+                                    <MoreHorizontal class="h-4 w-4" />
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent align="end" class="w-48">
+                                    <DropdownMenuItem
+                                        v-if="g.estado !== 'cerrada'"
+                                        as-child
+                                    >
+                                        <Link
+                                            :href="`/administracion/gestiones/${g.id}/edit`"
+                                            class="flex w-full cursor-pointer items-center"
+                                        >
+                                            <Pencil class="mr-2 h-4 w-4" />
+                                            Editar
+                                        </Link>
+                                    </DropdownMenuItem>
 
-                                <button
-                                    v-if="nextLabel[g.estado]"
-                                    class="rounded-md px-3 py-1.5 text-xs font-semibold text-white transition hover:brightness-110"
-                                    style="background-color: #073b75;"
-                                    @click="avanzar(g)"
-                                >
-                                    Avanzar →
-                                </button>
+                                    <DropdownMenuItem
+                                        v-if="['cursado', 'admision', 'cerrada'].includes(g.estado)"
+                                        as-child
+                                    >
+                                        <Link
+                                            :href="`/administracion/grupos/${g.id}`"
+                                            class="flex w-full cursor-pointer items-center"
+                                        >
+                                            <Users class="mr-2 h-4 w-4" />
+                                            Grupos
+                                        </Link>
+                                    </DropdownMenuItem>
 
-                                <button
-                                    class="rounded-md border border-red-200 px-3 py-1.5 text-xs font-medium text-red-600 transition hover:bg-red-50"
-                                    @click="eliminar(g)"
-                                >
-                                    Eliminar
-                                </button>
-                            </div>
+                                    <DropdownMenuItem
+                                        v-if="nextLabel[g.estado]"
+                                        class="cursor-pointer"
+                                        @select="avanzar(g)"
+                                    >
+                                        <ArrowRight class="mr-2 h-4 w-4" />
+                                        Avanzar a {{ nextLabel[g.estado] }}
+                                    </DropdownMenuItem>
+
+                                    <DropdownMenuSeparator />
+
+                                    <DropdownMenuItem
+                                        class="cursor-pointer text-red-600 focus:bg-red-50 focus:text-red-700"
+                                        @select="eliminar(g)"
+                                    >
+                                        <Trash2 class="mr-2 h-4 w-4" />
+                                        Eliminar
+                                    </DropdownMenuItem>
+                                </DropdownMenuContent>
+                            </DropdownMenu>
                         </td>
                     </tr>
                 </tbody>

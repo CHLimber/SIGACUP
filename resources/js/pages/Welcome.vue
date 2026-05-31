@@ -1,7 +1,8 @@
 <script setup lang="ts">
-import { computed, ref } from 'vue';
+import { computed, ref, type Component } from 'vue';
 import { Head, Link, useForm } from '@inertiajs/vue3';
 import { dashboard, login } from '@/routes';
+import { Monitor, Bot, Globe, Ruler, Type, Atom, Trophy, GraduationCap, FlaskConical, BarChart2 } from 'lucide-vue-next';
 
 interface CarreraDB {
     id: number;
@@ -12,35 +13,35 @@ const props = defineProps<{
     carreras: CarreraDB[];
 }>();
 
-const carrerasDisplay = [
-    { nombre: 'Ing. en Sistemas', icono: '💻' },
-    { nombre: 'Ing. Informática', icono: '🖥️' },
-    { nombre: 'Ing. en Robótica', icono: '🤖' },
-    { nombre: 'Ing. Redes y Telecomunicaciones', icono: '🌐' },
+const carrerasDisplay: { nombre: string; icono: Component }[] = [
+    { nombre: 'Ing. en Sistemas',              icono: Monitor },
+    { nombre: 'Ing. Informática',              icono: Monitor },
+    { nombre: 'Ing. en Robótica',              icono: Bot    },
+    { nombre: 'Ing. Redes y Telecomunicaciones', icono: Globe  },
 ];
 
-const materias = [
-    { nombre: 'Matemáticas', icono: '📐' },
-    { nombre: 'Computación', icono: '🖥️' },
-    { nombre: 'Inglés', icono: '🔤' },
-    { nombre: 'Física', icono: '⚛️' },
+const materias: { nombre: string; icono: Component }[] = [
+    { nombre: 'Matemáticas', icono: Ruler   },
+    { nombre: 'Computación', icono: Monitor },
+    { nombre: 'Inglés',      icono: Type    },
+    { nombre: 'Física',      icono: Atom    },
 ];
 
-const distinciones = [
+const distinciones: { titulo: string; descripcion: string; icono: Component }[] = [
     {
         titulo: 'Liderazgo Tecnológico',
         descripcion: 'Primera facultad de este tipo en el sistema público boliviano, pionera en la formación de ingenieros que transforman el entorno digital.',
-        icono: '🏆',
+        icono: Trophy,
     },
     {
         titulo: 'Calidad Académica',
         descripcion: 'Programas diseñados para formar profesionales integrales, éticos y altamente competitivos a nivel nacional e internacional.',
-        icono: '🎓',
+        icono: GraduationCap,
     },
     {
         titulo: 'Innovación Constante',
         descripcion: 'Promovemos la investigación científica y el desarrollo de soluciones tecnológicas que responden a las demandas reales de la sociedad.',
-        icono: '🔬',
+        icono: FlaskConical,
     },
 ];
 
@@ -252,7 +253,7 @@ function submit() {
                     <div v-for="carrera in carrerasDisplay" :key="carrera.nombre"
                          class="group rounded-xl border border-gray-100 bg-gray-50 p-5 text-center shadow-sm
                                 transition duration-200 hover:border-[#073b75] hover:bg-[#073b75] hover:shadow-md">
-                        <div class="mb-2 text-4xl">{{ carrera.icono }}</div>
+                        <component :is="carrera.icono" class="mx-auto mb-2 h-10 w-10 text-[#073b75] transition group-hover:text-white" />
                         <h3 class="text-sm font-semibold text-[#073b75] transition group-hover:text-white">
                             {{ carrera.nombre }}
                         </h3>
@@ -273,7 +274,7 @@ function submit() {
                 <div v-for="d in distinciones" :key="d.titulo"
                      class="rounded-xl border border-white/10 bg-white/5 p-6 text-center
                             transition hover:border-white/30 hover:bg-white/10">
-                    <div class="mb-3 text-4xl">{{ d.icono }}</div>
+                    <component :is="d.icono" class="mx-auto mb-3 h-10 w-10 text-blue-200" />
                     <h3 class="mb-2 font-bold text-white">{{ d.titulo }}</h3>
                     <p class="text-sm leading-relaxed text-blue-200/80">{{ d.descripcion }}</p>
                 </div>
@@ -292,7 +293,7 @@ function submit() {
             <div class="grid grid-cols-2 gap-6 md:grid-cols-4">
                 <div v-for="materia in materias" :key="materia.nombre"
                      class="rounded-xl bg-white p-6 text-center shadow-sm transition hover:shadow-md">
-                    <div class="mb-3 text-4xl">{{ materia.icono }}</div>
+                    <component :is="materia.icono" class="mx-auto mb-3 h-10 w-10 text-[#073b75]" />
                     <h3 class="font-bold text-[#073b75]">{{ materia.nombre }}</h3>
                     <p class="mt-1 text-xs text-gray-400">Mín. 60 puntos</p>
                     <div class="mx-auto mt-3 h-0.5 w-8 rounded bg-[#c70e0a]"></div>
@@ -600,7 +601,7 @@ function submit() {
     <section id="notas" class="bg-gray-50 py-20">
         <div class="mx-auto max-w-4xl px-6 text-center">
             <div class="rounded-2xl border-2 border-dashed border-gray-200 p-16">
-                <p class="mb-4 text-5xl">📊</p>
+                <BarChart2 class="mx-auto mb-4 h-16 w-16 text-gray-300" />
                 <h2 class="mb-3 text-2xl font-bold text-[#073b75]">Consulta de Notas</h2>
                 <p class="text-gray-400">Esta sección estará disponible una vez publicados los resultados.</p>
             </div>

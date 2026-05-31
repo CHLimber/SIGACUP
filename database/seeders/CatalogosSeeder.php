@@ -45,9 +45,8 @@ class CatalogosSeeder extends Seeder
         ]);
 
         DB::table('parametro_catalogo')->insert([
-            ['clave' => 'monto_matricula_bs',     'tipo' => 'decimal', 'descripcion' => 'Precio de la matrícula en Bs',            'created_at' => now(), 'updated_at' => now()],
-            ['clave' => 'monto_matricula_usd',    'tipo' => 'decimal', 'descripcion' => 'Precio de la matrícula en USD (Stripe)',  'created_at' => now(), 'updated_at' => now()],
-            ['clave' => 'capacidad_max_grupo',    'tipo' => 'entero',  'descripcion' => 'Capacidad máxima de alumnos por grupo',   'created_at' => now(), 'updated_at' => now()],
+            ['clave' => 'monto_matricula_bs',     'tipo' => 'decimal', 'descripcion' => 'Precio de la matrícula en Bs',          'created_at' => now(), 'updated_at' => now()],
+            ['clave' => 'capacidad_max_grupo',    'tipo' => 'entero',  'descripcion' => 'Capacidad máxima de alumnos por grupo', 'created_at' => now(), 'updated_at' => now()],
             ['clave' => 'peso_examen_1',          'tipo' => 'entero',  'descripcion' => 'Peso % del primer parcial',               'created_at' => now(), 'updated_at' => now()],
             ['clave' => 'peso_examen_2',          'tipo' => 'entero',  'descripcion' => 'Peso % del segundo parcial',              'created_at' => now(), 'updated_at' => now()],
             ['clave' => 'peso_examen_3',          'tipo' => 'entero',  'descripcion' => 'Peso % del examen final',                 'created_at' => now(), 'updated_at' => now()],
@@ -57,7 +56,6 @@ class CatalogosSeeder extends Seeder
         $gestiones = DB::table('gestion')->pluck('id');
         $params = [
             ['clave' => 'monto_matricula_bs',     'valor' => '800'],
-            ['clave' => 'monto_matricula_usd',    'valor' => '115'],
             ['clave' => 'capacidad_max_grupo',    'valor' => '70'],
             ['clave' => 'peso_examen_1',          'valor' => '30'],
             ['clave' => 'peso_examen_2',          'valor' => '30'],

@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { Head, Link, useForm } from '@inertiajs/vue3';
 import { computed } from 'vue';
+import { Check, X } from 'lucide-vue-next';
 import { dashboard } from '@/routes';
 
 defineOptions({
@@ -21,7 +22,6 @@ const form = useForm({
     fecha_inicio_cursado:     '',
     fecha_fin_cursado:        '',
     monto_matricula_bs:       800,
-    monto_matricula_usd:      115.49,
     capacidad_max_grupo:      70,
     peso_examen_1:            30,
     peso_examen_2:            30,
@@ -228,26 +228,6 @@ function submit() {
                             {{ form.errors.monto_matricula_bs }}
                         </p>
                     </div>
-                    <div class="flex flex-col gap-1.5">
-                        <label for="monto_usd" class="text-sm font-medium text-gray-700">
-                            Monto matrícula (USD) <span class="text-red-500">*</span>
-                        </label>
-                        <div class="flex items-center gap-2">
-                            <input
-                                id="monto_usd"
-                                v-model="form.monto_matricula_usd"
-                                type="number"
-                                min="1"
-                                step="0.01"
-                                class="w-32 rounded-md border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 shadow-sm focus:outline-none focus:ring-2 focus:ring-[#073b75]"
-                                :class="{ 'border-red-400': form.errors.monto_matricula_usd }"
-                            />
-                            <span class="text-sm text-gray-500">USD</span>
-                        </div>
-                        <p v-if="form.errors.monto_matricula_usd" class="text-xs text-red-600">
-                            {{ form.errors.monto_matricula_usd }}
-                        </p>
-                    </div>
                 </div>
 
                 <!-- ── Ponderación de exámenes ── -->
@@ -326,7 +306,7 @@ function submit() {
                             ? 'border-green-200 bg-green-50 text-green-700'
                             : 'border-red-200 bg-red-50 text-red-700'"
                     >
-                        <span>{{ sumaOk ? '✓' : '✗' }}</span>
+                        <component :is="sumaOk ? Check : X" class="h-4 w-4" />
                         Suma actual: <strong>{{ sumaPesos }} %</strong>
                         <span v-if="!sumaOk" class="text-xs">(debe ser 100 %)</span>
                     </div>

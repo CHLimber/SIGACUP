@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { Head, router } from '@inertiajs/vue3';
-import { computed } from 'vue';
+import { computed, type Component } from 'vue';
+import { GraduationCap, UserCheck, Clock, Check, X, Paperclip, Undo2 } from 'lucide-vue-next';
 import { dashboard } from '@/routes';
 
 type EstadoArchivo = 'pendiente_revision' | 'aprobado' | 'rechazado';
@@ -39,6 +40,10 @@ interface CandidatoData {
     motivo_rechazo: string | null;
     carrera_primera_opcion?: string;
     carrera_segunda_opcion?: string;
+    titulo?: string | null;
+    experiencia_anios?: number | null;
+    tiene_diplomado?: boolean;
+    tiene_maestria?: boolean;
     created_at: string;
 }
 
@@ -70,10 +75,10 @@ const estadoCandidatoConfig: Record<EstadoCandidato, { label: string; color: str
     rechazado:               { label: 'Rechazado',              color: 'bg-red-100 text-red-700'      },
 };
 
-const estadoArchivoConfig: Record<EstadoArchivo, { label: string; color: string; icono: string }> = {
-    pendiente_revision: { label: 'Pendiente de revisión', color: 'bg-gray-100 text-gray-700',   icono: '⏳' },
-    aprobado:           { label: 'Aprobado',              color: 'bg-green-100 text-green-700', icono: '✓' },
-    rechazado:          { label: 'Rechazado',             color: 'bg-red-100 text-red-700',     icono: '✗' },
+const estadoArchivoConfig: Record<EstadoArchivo, { label: string; color: string; icono: Component }> = {
+    pendiente_revision: { label: 'Pendiente de revisión', color: 'bg-gray-100 text-gray-700',   icono: Clock },
+    aprobado:           { label: 'Aprobado',              color: 'bg-green-100 text-green-700', icono: Check },
+    rechazado:          { label: 'Rechazado',             color: 'bg-red-100 text-red-700',     icono: X     },
 };
 
 const totales = computed(() => ({
@@ -175,7 +180,7 @@ function volver() {
             <div class="flex flex-wrap items-start justify-between gap-4">
                 <div>
                     <div class="flex items-center gap-2">
-                        <span class="text-2xl">{{ tipo === 'estudiante' ? '🎓' : '👨‍🏫' }}</span>
+                        <component :is="tipo === 'estudiante' ? GraduationCap : UserCheck" class="h-6 w-6 text-gray-500" />
                         <h1 class="text-xl font-bold text-gray-900">{{ candidato.nombre_completo }}</h1>
                     </div>
                     <p class="mt-1 text-sm text-gray-500">
@@ -190,6 +195,24 @@ function volver() {
                         <template v-if="tipo === 'estudiante'">
                             <p><strong>1ra opción:</strong> {{ candidato.carrera_primera_opcion }}</p>
                             <p><strong>2da opción:</strong> {{ candidato.carrera_segunda_opcion }}</p>
+                        </template>
+                        <template v-if="tipo === 'docente'">
+                            <p>
+                                <strong>Título:</strong>
+                                <span v-if="candidato.titulo">{{ candidato.titulo }}</span>
+                                <span v-else class="italic text-amber-600">No declarado</span>
+                            </p>
+                            <p>
+                                <strong>Experiencia:</strong>
+                                <span v-if="candidato.experiencia_anios !== null && candidato.experiencia_anios !== undefined">{{ candidato.experiencia_anios }} año(s)</span>
+                                <span v-else class="italic text-gray-400">—</span>
+                            </p>
+                            <p class="sm:col-span-2">
+                                <strong>Formación:</strong>
+                                <span v-if="candidato.tiene_maestria" class="ml-1 inline-flex rounded-full bg-purple-100 px-2 py-0.5 text-xs font-semibold text-purple-700">Maestría</span>
+                                <span v-if="candidato.tiene_diplomado" class="ml-1 inline-flex rounded-full bg-blue-100 px-2 py-0.5 text-xs font-semibold text-blue-700">Diplomado</span>
+                                <span v-if="!candidato.tiene_diplomado && !candidato.tiene_maestria" class="ml-1 text-xs text-gray-400">Ninguna declarada</span>
+                            </p>
                         </template>
                     </div>
                 </div>
@@ -253,7 +276,7 @@ function volver() {
                         class="inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-semibold"
                         :class="estadoArchivoConfig[req.archivo.estado].color"
                     >
-                        {{ estadoArchivoConfig[req.archivo.estado].icono }}
+                        <component :is="estadoArchivoConfig[req.archivo.estado].icono" class="h-3 w-3" />
                         {{ estadoArchivoConfig[req.archivo.estado].label }}
                     </span>
                     <span
@@ -269,7 +292,7 @@ function volver() {
                     class="mt-4 flex flex-wrap items-center justify-between gap-3 rounded-md bg-gray-50 px-3 py-2"
                 >
                     <div class="flex items-center gap-2 text-sm text-gray-700 truncate">
-                        <span>📎</span>
+                        <Paperclip class="h-4 w-4 flex-shrink-0" />
                         <a
                             :href="urlDescargar(req.archivo.id)"
                             target="_blank"
@@ -283,20 +306,20 @@ function volver() {
                         <button
                             v-if="!cerrado"
                             type="button"
-                            class="rounded-md bg-green-600 px-3 py-1.5 text-xs font-semibold text-white transition hover:bg-green-700 disabled:opacity-40"
+                            class="inline-flex items-center gap-1.5 rounded-md bg-green-600 px-3 py-1.5 text-xs font-semibold text-white transition hover:bg-green-700 disabled:opacity-40"
                             :disabled="req.archivo.estado === 'aprobado'"
                             @click="aprobarRequisito(req)"
                         >
-                            ✓ Aprobar
+                            <Check class="h-3 w-3" /> Aprobar
                         </button>
                         <button
                             v-if="!cerrado"
                             type="button"
-                            class="rounded-md border border-red-300 px-3 py-1.5 text-xs font-medium text-red-600 transition hover:bg-red-50 disabled:opacity-40"
+                            class="inline-flex items-center gap-1.5 rounded-md border border-red-300 px-3 py-1.5 text-xs font-medium text-red-600 transition hover:bg-red-50 disabled:opacity-40"
                             :disabled="req.archivo.estado === 'rechazado'"
                             @click="rechazarRequisito(req)"
                         >
-                            ✗ Rechazar
+                            <X class="h-3 w-3" /> Rechazar
                         </button>
                     </div>
                 </div>
@@ -323,28 +346,28 @@ function volver() {
             <div class="mt-4 flex flex-wrap gap-3">
                 <button
                     type="button"
-                    class="rounded-md bg-green-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-green-700 disabled:cursor-not-allowed disabled:opacity-40"
+                    class="inline-flex items-center gap-2 rounded-md bg-green-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-green-700 disabled:cursor-not-allowed disabled:opacity-40"
                     :disabled="!puedeAprobar"
                     :title="!puedeAprobar ? 'Debes aprobar todos los requisitos obligatorios' : ''"
                     @click="aprobarCandidato"
                 >
-                    ✓ Aprobar candidato
+                    <Check class="h-4 w-4" /> Aprobar candidato
                 </button>
                 <button
                     type="button"
-                    class="rounded-md bg-orange-500 px-4 py-2 text-sm font-semibold text-white transition hover:bg-orange-600 disabled:cursor-not-allowed disabled:opacity-40"
+                    class="inline-flex items-center gap-2 rounded-md bg-orange-500 px-4 py-2 text-sm font-semibold text-white transition hover:bg-orange-600 disabled:cursor-not-allowed disabled:opacity-40"
                     :disabled="!tieneRechazados || candidato.estado !== 'en_revision'"
                     :title="!tieneRechazados ? 'No hay requisitos rechazados' : ''"
                     @click="solicitarCorrecciones"
                 >
-                    ↩ Solicitar correcciones
+                    <Undo2 class="h-4 w-4" /> Solicitar correcciones
                 </button>
                 <button
                     type="button"
-                    class="rounded-md border border-red-300 px-4 py-2 text-sm font-medium text-red-600 transition hover:bg-red-50"
+                    class="inline-flex items-center gap-2 rounded-md border border-red-300 px-4 py-2 text-sm font-medium text-red-600 transition hover:bg-red-50"
                     @click="rechazarCandidato"
                 >
-                    ✗ Rechazar definitivamente
+                    <X class="h-4 w-4" /> Rechazar definitivamente
                 </button>
             </div>
         </div>

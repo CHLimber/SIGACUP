@@ -1,7 +1,8 @@
 <script setup lang="ts">
 import { Head, usePage } from '@inertiajs/vue3';
-import { computed } from 'vue';
+import { computed, type Component } from 'vue';
 import { dashboard } from '@/routes';
+import { User, BookOpen, FileText, CheckCircle2, CreditCard, Calendar, BarChart2 } from 'lucide-vue-next';
 
 defineOptions({
     layout: {
@@ -19,18 +20,18 @@ const roleLabel: Record<string, string> = {
     autoridad:     'Autoridad',
 };
 
-const stats = [
-    { label: 'Candidatos inscritos',   valor: '—', icono: '👤', color: '#073b75' },
-    { label: 'Materias activas',        valor: '4',  icono: '📚', color: '#073b75' },
-    { label: 'Exámenes programados',   valor: '—', icono: '📝', color: '#c70e0a' },
-    { label: 'Aprobados hasta ahora',  valor: '—', icono: '✅', color: '#15803d' },
+const stats: { label: string; valor: string; icono: Component; color: string }[] = [
+    { label: 'Candidatos inscritos',  valor: '—', icono: User,         color: '#073b75' },
+    { label: 'Materias activas',      valor: '4', icono: BookOpen,     color: '#073b75' },
+    { label: 'Exámenes programados',  valor: '—', icono: FileText,     color: '#c70e0a' },
+    { label: 'Aprobados hasta ahora', valor: '—', icono: CheckCircle2, color: '#15803d' },
 ];
 
-const modulos = [
-    { nombre: 'Inscripción y Pagos',       descripcion: 'Gestión de candidatos y pagos del CUP.',         icono: '💳' },
-    { nombre: 'Organización Académica',    descripcion: 'Horarios, docentes y materias del curso.',        icono: '🗓️' },
-    { nombre: 'Evaluación y Resultados',   descripcion: 'Registro de notas y resultados de exámenes.',     icono: '📊' },
-    { nombre: 'Reportes',                  descripcion: 'Generación de reportes e informes del proceso.',   icono: '📄' },
+const modulos: { nombre: string; descripcion: string; icono: Component }[] = [
+    { nombre: 'Inscripción y Pagos',     descripcion: 'Gestión de candidatos y pagos del CUP.',        icono: CreditCard },
+    { nombre: 'Organización Académica',  descripcion: 'Horarios, docentes y materias del curso.',       icono: Calendar  },
+    { nombre: 'Evaluación y Resultados', descripcion: 'Registro de notas y resultados de exámenes.',    icono: BarChart2  },
+    { nombre: 'Reportes',               descripcion: 'Generación de reportes e informes del proceso.',  icono: FileText  },
 ];
 </script>
 
@@ -64,7 +65,7 @@ const modulos = [
                 :key="stat.label"
                 class="rounded-xl border border-gray-100 bg-white p-5 shadow-sm"
             >
-                <div class="mb-3 text-3xl">{{ stat.icono }}</div>
+                <div class="mb-3"><component :is="stat.icono" class="h-8 w-8" :style="{ color: stat.color }" /></div>
                 <p class="text-2xl font-bold" :style="{ color: stat.color }">{{ stat.valor }}</p>
                 <p class="mt-1 text-xs text-gray-500">{{ stat.label }}</p>
             </div>
@@ -83,7 +84,7 @@ const modulos = [
                     class="group cursor-pointer rounded-xl border border-gray-100 bg-white p-5 shadow-sm
                            transition duration-200 hover:border-[#073b75] hover:shadow-md"
                 >
-                    <div class="mb-3 text-3xl">{{ modulo.icono }}</div>
+                    <div class="mb-3"><component :is="modulo.icono" class="h-8 w-8 text-[#073b75]" /></div>
                     <h3 class="mb-1 font-semibold text-[#073b75]">{{ modulo.nombre }}</h3>
                     <p class="text-xs leading-relaxed text-gray-400">{{ modulo.descripcion }}</p>
                     <div class="mt-3 h-0.5 w-6 rounded bg-[#c70e0a] transition-all duration-200 group-hover:w-12"></div>

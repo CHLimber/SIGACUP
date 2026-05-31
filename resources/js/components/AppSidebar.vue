@@ -5,9 +5,12 @@ import {
     BookOpen,
     CreditCard,
     FileText,
+    GraduationCap,
     LayoutGrid,
+    Presentation,
     Settings,
     UserCheck,
+    Users2,
 } from 'lucide-vue-next';
 import AppLogo from '@/components/AppLogo.vue';
 import NavMain from '@/components/NavMain.vue';
@@ -39,6 +42,21 @@ const mainNavItems: NavItem[] = [
         title: 'Organización Académica',
         href: dashboard(),
         icon: BookOpen,
+    },
+    {
+        title: 'Gestionar Grupos',
+        href: '/administracion/grupos',
+        icon: Users2,
+    },
+    {
+        title: 'Gestionar Docentes',
+        href: '/administracion/docentes',
+        icon: Presentation,
+    },
+    {
+        title: 'Gestionar Estudiantes',
+        href: '/administracion/estudiantes',
+        icon: GraduationCap,
     },
     {
         title: 'Evaluación y Resultados',

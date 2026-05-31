@@ -21,7 +21,17 @@ class CandidatoDocente extends Model
 
     protected $fillable = [
         'persona_id', 'estado', 'token_acceso', 'motivo_rechazo', 'user_id',
+        'titulo', 'experiencia_anios', 'tiene_diplomado', 'tiene_maestria',
     ];
+
+    protected function casts(): array
+    {
+        return [
+            'experiencia_anios' => 'integer',
+            'tiene_diplomado'   => 'boolean',
+            'tiene_maestria'    => 'boolean',
+        ];
+    }
 
     protected $appends = [
         'ci', 'apellido', 'nombres', 'fecha_nacimiento',

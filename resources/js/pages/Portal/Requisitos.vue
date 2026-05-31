@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { Head, router, useForm } from '@inertiajs/vue3';
-import { computed, ref } from 'vue';
+import { computed, ref, type Component } from 'vue';
+import { Clock, Check, X, GraduationCap, UserCheck, ClipboardList, Paperclip, Loader2, RefreshCw, Upload, BriefcaseBusiness } from 'lucide-vue-next';
 
 type EstadoArchivo = 'pendiente_revision' | 'aprobado' | 'rechazado';
 type EstadoCandidato = 'pendiente' | 'en_revision' | 'requiere_correcciones' | 'aprobado_pendiente_pago' | 'pagado' | 'rechazado';
@@ -32,9 +33,17 @@ interface CandidatoData {
     motivo_rechazo: string | null;
 }
 
+interface DatosProfesionales {
+    titulo: string;
+    experiencia_anios: number;
+    tiene_diplomado: boolean;
+    tiene_maestria: boolean;
+}
+
 const props = defineProps<{
     token: string;
     candidato: CandidatoData;
+    datosProfesionales: DatosProfesionales | null;
     requisitos: RequisitoItem[];
     puedeEnviar: boolean;
     bloqueado: boolean;
@@ -76,15 +85,32 @@ const estadoCandidatoConfig: Record<EstadoCandidato, { label: string; descripcio
     },
 };
 
-const estadoArchivoConfig: Record<EstadoArchivo, { label: string; color: string; icono: string }> = {
-    pendiente_revision: { label: 'Pendiente de revisión', color: 'bg-gray-100 text-gray-700', icono: '⏳' },
-    aprobado:           { label: 'Aprobado',              color: 'bg-green-100 text-green-700', icono: '✓' },
-    rechazado:          { label: 'Rechazado',             color: 'bg-red-100 text-red-700',     icono: '✗' },
+const estadoArchivoConfig: Record<EstadoArchivo, { label: string; color: string; icono: Component }> = {
+    pendiente_revision: { label: 'Pendiente de revisión', color: 'bg-gray-100 text-gray-700',   icono: Clock },
+    aprobado:           { label: 'Aprobado',              color: 'bg-green-100 text-green-700', icono: Check },
+    rechazado:          { label: 'Rechazado',             color: 'bg-red-100 text-red-700',     icono: X     },
 };
 
 const obligatoriosFaltantes = computed(() =>
     props.requisitos.filter((r) => r.obligatorio && !r.archivo).length,
 );
+
+const faltaDatosProfesionales = computed(() =>
+    props.candidato.tipo === 'docente'
+    && (!props.datosProfesionales?.titulo || props.datosProfesionales.titulo.trim() === ''),
+);
+
+const mensajeBotonEnviar = computed(() => {
+    if (props.puedeEnviar) return 'Listo para enviar';
+    const partes: string[] = [];
+    if (obligatoriosFaltantes.value > 0) {
+        partes.push(`${obligatoriosFaltantes.value} requisito(s) obligatorio(s)`);
+    }
+    if (faltaDatosProfesionales.value) {
+        partes.push('datos profesionales');
+    }
+    return 'Faltan: ' + partes.join(' · ');
+});
 
 const totalRechazados = computed(() =>
     props.requisitos.filter((r) => r.archivo?.estado === 'rechazado').length,
@@ -143,6 +169,25 @@ function enviarRevision() {
     enviarForm.post(urlEnviar(), { preserveScroll: true });
 }
 
+const datosForm = useForm({
+    titulo:            props.datosProfesionales?.titulo ?? '',
+    experiencia_anios: props.datosProfesionales?.experiencia_anios ?? 0,
+    tiene_diplomado:   props.datosProfesionales?.tiene_diplomado ?? false,
+    tiene_maestria:    props.datosProfesionales?.tiene_maestria ?? false,
+});
+
+function puedeEditarDatosProfesionales(): boolean {
+    return props.candidato.tipo === 'docente'
+        && props.candidato.estado !== 'en_revision'
+        && !props.bloqueado;
+}
+
+function guardarDatosProfesionales() {
+    datosForm.post(`/candidato/${props.token}/datos-profesionales`, {
+        preserveScroll: true,
+    });
+}
+
 function mimeLabel(mimes: string[]): string {
     return mimes
         .map((m) => {
@@ -171,7 +216,7 @@ function mimeLabel(mimes: string[]): string {
                             Hola, <strong>{{ candidato.nombre_completo }}</strong> · CI {{ candidato.ci }}
                         </p>
                     </div>
-                    <span class="text-3xl">{{ candidato.tipo === 'estudiante' ? '🎓' : '👨‍🏫' }}</span>
+                    <component :is="candidato.tipo === 'estudiante' ? GraduationCap : UserCheck" class="h-8 w-8 text-gray-400" />
                 </div>
             </div>
         </header>
@@ -183,7 +228,7 @@ function mimeLabel(mimes: string[]): string {
                 :class="estadoCandidatoConfig[candidato.estado].color"
             >
                 <div class="flex items-start gap-3">
-                    <div class="text-2xl">📋</div>
+                    <ClipboardList class="h-6 w-6 flex-shrink-0 opacity-75" />
                     <div class="flex-1">
                         <p class="text-xs font-semibold uppercase tracking-wider opacity-75">Estado de tu solicitud</p>
                         <p class="mt-0.5 text-lg font-bold">{{ estadoCandidatoConfig[candidato.estado].label }}</p>
@@ -207,6 +252,80 @@ function mimeLabel(mimes: string[]): string {
                     <strong>{{ totalRechazados }}</strong> requisito{{ totalRechazados > 1 ? 's' : '' }} fueron rechazados.
                     Revisa el motivo en cada tarjeta y vuelve a subir solo esos archivos.
                 </p>
+            </div>
+
+            <!-- Datos profesionales (solo docentes) -->
+            <div
+                v-if="candidato.tipo === 'docente' && datosProfesionales"
+                class="mt-6 rounded-xl border border-gray-200 bg-white p-5 shadow-sm"
+            >
+                <div class="flex items-start gap-3">
+                    <BriefcaseBusiness class="h-6 w-6 flex-shrink-0 text-[#073b75]" />
+                    <div class="flex-1">
+                        <h2 class="text-base font-semibold text-gray-900">Datos profesionales</h2>
+                        <p class="mt-0.5 text-sm text-gray-500">
+                            Completa tu información profesional. Se asociará a tu cuenta cuando seas aprobado.
+                        </p>
+                    </div>
+                </div>
+
+                <div class="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2">
+                    <div class="sm:col-span-2">
+                        <label class="block text-xs font-semibold text-gray-700">Título profesional *</label>
+                        <input
+                            v-model="datosForm.titulo"
+                            type="text"
+                            maxlength="120"
+                            placeholder="Lic. Ingeniería de Sistemas"
+                            :disabled="!puedeEditarDatosProfesionales()"
+                            class="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-[#073b75] focus:outline-none focus:ring-1 focus:ring-[#073b75] disabled:bg-gray-50 disabled:text-gray-500"
+                        />
+                        <p v-if="datosForm.errors.titulo" class="mt-1 text-xs text-red-600">{{ datosForm.errors.titulo }}</p>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-gray-700">Años de experiencia *</label>
+                        <input
+                            v-model.number="datosForm.experiencia_anios"
+                            type="number"
+                            min="0"
+                            max="60"
+                            :disabled="!puedeEditarDatosProfesionales()"
+                            class="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-[#073b75] focus:outline-none focus:ring-1 focus:ring-[#073b75] disabled:bg-gray-50 disabled:text-gray-500"
+                        />
+                        <p v-if="datosForm.errors.experiencia_anios" class="mt-1 text-xs text-red-600">{{ datosForm.errors.experiencia_anios }}</p>
+                    </div>
+                    <div class="flex flex-col justify-center gap-2">
+                        <label class="flex items-center gap-2 text-sm text-gray-700">
+                            <input
+                                v-model="datosForm.tiene_diplomado"
+                                type="checkbox"
+                                :disabled="!puedeEditarDatosProfesionales()"
+                                class="h-4 w-4 rounded border-gray-300 text-[#073b75] focus:ring-[#073b75]"
+                            />
+                            Tengo diplomado
+                        </label>
+                        <label class="flex items-center gap-2 text-sm text-gray-700">
+                            <input
+                                v-model="datosForm.tiene_maestria"
+                                type="checkbox"
+                                :disabled="!puedeEditarDatosProfesionales()"
+                                class="h-4 w-4 rounded border-gray-300 text-[#073b75] focus:ring-[#073b75]"
+                            />
+                            Tengo maestría
+                        </label>
+                    </div>
+                </div>
+
+                <div v-if="puedeEditarDatosProfesionales()" class="mt-4 flex justify-end">
+                    <button
+                        type="button"
+                        class="rounded-md bg-[#073b75] px-4 py-2 text-sm font-semibold text-white transition hover:bg-[#052a55] disabled:opacity-50"
+                        :disabled="datosForm.processing"
+                        @click="guardarDatosProfesionales"
+                    >
+                        {{ datosForm.processing ? 'Guardando…' : 'Guardar datos profesionales' }}
+                    </button>
+                </div>
             </div>
 
             <!-- Lista de requisitos -->
@@ -238,7 +357,7 @@ function mimeLabel(mimes: string[]): string {
                                 class="inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-semibold"
                                 :class="estadoArchivoConfig[req.archivo.estado].color"
                             >
-                                {{ estadoArchivoConfig[req.archivo.estado].icono }}
+                                <component :is="estadoArchivoConfig[req.archivo.estado].icono" class="h-3 w-3" />
                                 {{ estadoArchivoConfig[req.archivo.estado].label }}
                             </span>
                         </div>
@@ -258,7 +377,7 @@ function mimeLabel(mimes: string[]): string {
                         class="mt-4 flex items-center justify-between gap-3 rounded-md bg-gray-50 px-3 py-2"
                     >
                         <div class="flex items-center gap-2 text-sm text-gray-700 truncate">
-                            <span>📎</span>
+                            <Paperclip class="h-4 w-4 flex-shrink-0" />
                             <a
                                 :href="urlDescargar(req.codigo)"
                                 target="_blank"
@@ -283,8 +402,9 @@ function mimeLabel(mimes: string[]): string {
                             class="inline-flex cursor-pointer items-center gap-2 rounded-md bg-[#073b75] px-4 py-2 text-sm font-semibold text-white transition hover:bg-[#052a55]"
                             :class="{ 'opacity-50': subiendo === req.codigo }"
                         >
-                            <span v-if="subiendo === req.codigo">⏳ Subiendo...</span>
-                            <span v-else>{{ req.archivo ? '🔄 Reemplazar archivo' : '⬆ Subir archivo' }}</span>
+                            <span v-if="subiendo === req.codigo" class="inline-flex items-center gap-1.5"><Loader2 class="h-4 w-4 animate-spin" /> Subiendo...</span>
+                            <span v-else-if="req.archivo" class="inline-flex items-center gap-1.5"><RefreshCw class="h-4 w-4" /> Reemplazar archivo</span>
+                            <span v-else class="inline-flex items-center gap-1.5"><Upload class="h-4 w-4" /> Subir archivo</span>
                             <input
                                 type="file"
                                 class="hidden"
@@ -306,7 +426,7 @@ function mimeLabel(mimes: string[]): string {
                 <div class="flex flex-wrap items-center justify-between gap-3">
                     <div>
                         <p class="text-sm font-semibold text-gray-900">
-                            {{ puedeEnviar ? 'Listo para enviar' : `Faltan ${obligatoriosFaltantes} requisito(s) obligatorio(s)` }}
+                            {{ mensajeBotonEnviar }}
                         </p>
                         <p class="mt-0.5 text-xs text-gray-500">
                             Una vez enviada, la solicitud quedará bloqueada hasta que la coordinación responda.

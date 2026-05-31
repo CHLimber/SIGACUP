@@ -21,6 +21,7 @@ Route::prefix('candidato/{token}')->name('portal.candidato.')->group(function ()
     Route::post('requisitos/{codigo}', [PortalCandidatoController::class, 'subir'])->name('subir');
     Route::delete('requisitos/{codigo}', [PortalCandidatoController::class, 'eliminar'])->name('eliminar');
     Route::get('requisitos/{codigo}/descargar', [PortalCandidatoController::class, 'descargar'])->name('descargar');
+    Route::post('datos-profesionales', [PortalCandidatoController::class, 'guardarDatosProfesionales'])->name('datos-profesionales');
     Route::post('enviar', [PortalCandidatoController::class, 'enviar'])->name('enviar');
 });
 

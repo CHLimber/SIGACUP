@@ -45,16 +45,24 @@ class PortalCandidatoController extends Controller
             ];
         })->values()->all();
 
+        $esDocente = $candidato instanceof CandidatoDocente;
+
         return Inertia::render('Portal/Requisitos', [
             'token'        => $token,
             'candidato'    => [
-                'tipo'             => $candidato instanceof CandidatoEstudiante ? 'estudiante' : 'docente',
+                'tipo'             => $esDocente ? 'docente' : 'estudiante',
                 'nombre_completo'  => $candidato->nombre_completo,
                 'ci'               => $candidato->ci,
                 'email'            => $candidato->email,
                 'estado'           => $candidato->estado,
                 'motivo_rechazo'   => $candidato->motivo_rechazo,
             ],
+            'datosProfesionales' => $esDocente ? [
+                'titulo'            => $candidato->titulo ?? '',
+                'experiencia_anios' => $candidato->experiencia_anios ?? 0,
+                'tiene_diplomado'   => (bool) $candidato->tiene_diplomado,
+                'tiene_maestria'    => (bool) $candidato->tiene_maestria,
+            ] : null,
             'requisitos'   => $requisitos,
             'puedeEnviar'  => $this->puedeEnviar($candidato),
             'bloqueado'    => in_array($candidato->estado, [
@@ -63,6 +71,40 @@ class PortalCandidatoController extends Controller
                 CandidatoEstudiante::ESTADO_RECHAZADO,
                 CandidatoEstudiante::ESTADO_EN_REVISION,
             ], true),
+        ]);
+    }
+
+    public function guardarDatosProfesionales(Request $request, string $token): RedirectResponse
+    {
+        $candidato = $this->candidatoPorToken($token);
+
+        if (! $candidato instanceof CandidatoDocente) {
+            abort(404);
+        }
+
+        if (in_array($candidato->estado, [
+            CandidatoDocente::ESTADO_APROBADO,
+            CandidatoDocente::ESTADO_RECHAZADO,
+            CandidatoDocente::ESTADO_EN_REVISION,
+        ], true)) {
+            abort(403, 'No puedes editar tus datos mientras la solicitud está bloqueada.');
+        }
+
+        $data = $request->validate([
+            'titulo'            => 'required|string|max:120',
+            'experiencia_anios' => 'required|integer|min:0|max:60',
+            'tiene_diplomado'   => 'required|boolean',
+            'tiene_maestria'    => 'required|boolean',
+        ], [
+            'titulo.required' => 'El título profesional es obligatorio.',
+            'experiencia_anios.required' => 'Indica tus años de experiencia.',
+        ]);
+
+        $candidato->update($data);
+
+        return back()->with('flash', [
+            'type'    => 'success',
+            'message' => 'Datos profesionales guardados.',
         ]);
     }
 
@@ -223,7 +265,15 @@ class PortalCandidatoController extends Controller
         $obligatorios = RequisitosCatalogo::codigosObligatorios($candidato);
         $subidos      = $candidato->requisitos()->pluck('codigo')->all();
 
-        return count(array_diff($obligatorios, $subidos)) === 0;
+        if (count(array_diff($obligatorios, $subidos)) > 0) {
+            return false;
+        }
+
+        if ($candidato instanceof CandidatoDocente) {
+            return ! empty($candidato->titulo) && $candidato->experiencia_anios !== null;
+        }
+
+        return true;
     }
 
     private function directorioCandidato(Model $candidato): string

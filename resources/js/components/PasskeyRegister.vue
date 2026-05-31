@@ -53,30 +53,30 @@ const handleCancel = () => {
 
 <template>
     <div v-if="!isSupported" class="text-sm text-muted-foreground">
-        Passkeys are not supported in this browser.
+        Tu navegador no soporta passkeys.
     </div>
 
     <Button v-else-if="!showForm" variant="outline" @click="showForm = true">
-        Add passkey
+        Agregar passkey
     </Button>
 
     <form
         v-else
         @submit="handleSubmit"
-        class="space-y-4 rounded-lg border border-border bg-muted/50 p-4"
+        class="space-y-4 rounded-lg border border-gray-200 bg-gray-50 p-4"
     >
         <div class="grid gap-2">
-            <Label for="passkey-name">Passkey name</Label>
+            <Label for="passkey-name">Nombre de la passkey</Label>
             <Input
                 id="passkey-name"
                 type="text"
                 v-model="name"
-                placeholder="e.g., MacBook Pro, iPhone"
+                placeholder="Ej.: MacBook Pro, iPhone"
                 class="mt-1 block w-full border-foreground/20"
                 autofocus
             />
             <p class="text-xs text-muted-foreground">
-                A name helps you identify this passkey later.
+                El nombre te ayuda a identificar la passkey luego.
             </p>
         </div>
 
@@ -84,10 +84,10 @@ const handleCancel = () => {
 
         <div class="flex gap-2">
             <Button type="submit" :disabled="isLoading || !name.trim()">
-                {{ isLoading ? 'Registering...' : 'Register passkey' }}
+                {{ isLoading ? 'Registrando…' : 'Registrar passkey' }}
             </Button>
             <Button type="button" variant="ghost" @click="handleCancel">
-                Cancel
+                Cancelar
             </Button>
         </div>
     </form>

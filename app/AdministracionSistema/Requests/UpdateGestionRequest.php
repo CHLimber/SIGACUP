@@ -15,7 +15,6 @@ class UpdateGestionRequest extends FormRequest
             'fecha_inicio_cursado'     => ['required', 'date'],
             'fecha_fin_cursado'        => ['required', 'date', 'after_or_equal:fecha_inicio_cursado'],
             'monto_matricula_bs'        => ['required', 'numeric', 'min:0'],
-            'monto_matricula_usd'       => ['required', 'numeric', 'min:0'],
             'capacidad_max_grupo'       => ['required', 'integer', 'min:1', 'max:500'],
             'peso_examen_1'            => ['required', 'integer', 'min:0', 'max:100'],
             'peso_examen_2'            => ['required', 'integer', 'min:0', 'max:100'],

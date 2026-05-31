@@ -7,6 +7,7 @@ use App\AdministracionSistema\Models\Parametro;
 use App\AdministracionSistema\Requests\StoreGestionRequest;
 use App\AdministracionSistema\Requests\UpdateGestionRequest;
 use App\Http\Controllers\Controller;
+use Illuminate\Database\QueryException;
 use Illuminate\Http\RedirectResponse;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -24,7 +25,6 @@ class GestionController extends Controller
 
     private const PARAM_CLAVES = [
         'monto_matricula_bs',
-        'monto_matricula_usd',
         'capacidad_max_grupo',
         'peso_examen_1',
         'peso_examen_2',
@@ -87,7 +87,14 @@ class GestionController extends Controller
     public function destroy(Gestion $gestion): RedirectResponse
     {
         $label = $gestion->label;
-        $gestion->delete();
+
+        try {
+            $gestion->parametros()->delete();
+            $gestion->delete();
+        } catch (QueryException) {
+            return redirect()->route('gestiones.index')
+                ->with('flash', ['type' => 'error', 'message' => "No se puede eliminar la gestión {$label} porque tiene datos asociados (postulaciones, grupos u otros registros)."]);
+        }
 
         return redirect()->route('gestiones.index')
             ->with('flash', ['type' => 'success', 'message' => "Gestión {$label} eliminada."]);
