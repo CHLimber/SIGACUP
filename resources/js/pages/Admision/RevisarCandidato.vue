@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { Head, router } from '@inertiajs/vue3';
 import { computed, type Component } from 'vue';
-import { GraduationCap, UserCheck, Clock, Check, X, Paperclip, Undo2 } from 'lucide-vue-next';
+import { GraduationCap, UserCheck, Clock, Check, X, Paperclip, Undo2, AlertTriangle } from 'lucide-vue-next';
 import { dashboard } from '@/routes';
 
 type EstadoArchivo = 'pendiente_revision' | 'aprobado' | 'rechazado';
@@ -52,8 +52,20 @@ const props = defineProps<{
     candidato: CandidatoData;
     requisitos: RequisitoItem[];
     puedeAprobar: boolean;
+    tienePostulacion: boolean;
     tieneRechazados: boolean;
 }>();
+
+const motivoNoPuedeAprobar = computed<string>(() => {
+    if (props.puedeAprobar) return '';
+    if (props.tipo === 'estudiante' && !props.tienePostulacion) {
+        return 'El candidato no tiene una postulación activa (la inscripción se hizo sin una gestión disponible). No es posible aprobarlo.';
+    }
+    if (props.candidato.estado !== 'en_revision' && props.candidato.estado !== 'requiere_correcciones') {
+        return 'La solicitud no está en un estado que permita aprobarla.';
+    }
+    return 'Debes aprobar todos los requisitos obligatorios antes de cerrar la solicitud.';
+});
 
 defineOptions({
     layout: {
@@ -138,7 +150,12 @@ function aprobarCandidato() {
 }
 
 function rechazarCandidato() {
-    const motivo = prompt(`Rechazo DEFINITIVO del candidato ${props.candidato.nombre_completo}.\n\nMotivo (obligatorio, mínimo 5 caracteres):`);
+    const motivo = prompt(
+        `Rechazo DEFINITIVO del candidato ${props.candidato.nombre_completo}.\n\n`
+        + 'Se enviará un correo notificando la decisión y el candidato será ELIMINADO del sistema '
+        + '(junto con sus archivos y datos).\n\n'
+        + 'Motivo (obligatorio, mínimo 5 caracteres):',
+    );
     if (motivo === null) return;
     if (motivo.trim().length < 5) {
         alert('Debes indicar un motivo.');
@@ -343,12 +360,23 @@ function volver() {
                 Aprueba al candidato si todos los requisitos obligatorios están aprobados,
                 solicita correcciones si hay rechazados, o rechaza definitivamente la solicitud.
             </p>
+            <div
+                v-if="tipo === 'estudiante' && !tienePostulacion"
+                class="mt-4 flex items-start gap-2 rounded-md border border-amber-300 bg-amber-50 px-3 py-2 text-sm text-amber-800"
+            >
+                <AlertTriangle class="mt-0.5 h-4 w-4 flex-shrink-0" />
+                <p>
+                    Este candidato no tiene una <strong>postulación activa</strong> (probablemente se registró sin una
+                    gestión abierta). No se puede aprobar. Si la solicitud no es válida, recházala definitivamente
+                    para eliminarla del sistema.
+                </p>
+            </div>
             <div class="mt-4 flex flex-wrap gap-3">
                 <button
                     type="button"
                     class="inline-flex items-center gap-2 rounded-md bg-green-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-green-700 disabled:cursor-not-allowed disabled:opacity-40"
                     :disabled="!puedeAprobar"
-                    :title="!puedeAprobar ? 'Debes aprobar todos los requisitos obligatorios' : ''"
+                    :title="motivoNoPuedeAprobar"
                     @click="aprobarCandidato"
                 >
                     <Check class="h-4 w-4" /> Aprobar candidato

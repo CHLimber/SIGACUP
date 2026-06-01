@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { Head, Link, router } from '@inertiajs/vue3';
-import { MoreHorizontal, Pencil, Users, ArrowRight, Trash2 } from 'lucide-vue-next';
+import { MoreHorizontal, Pencil, Users, ArrowRight, ArrowLeft, Trash2, Star } from 'lucide-vue-next';
 import {
     DropdownMenu,
     DropdownMenuContent,
@@ -21,7 +21,7 @@ interface Gestion {
     fecha_fin_cursado: string | null;
 }
 
-defineProps<{ gestiones: Gestion[] }>();
+defineProps<{ gestiones: Gestion[]; activa_id: number | null }>();
 
 defineOptions({
     layout: {
@@ -47,11 +47,25 @@ const nextLabel: Partial<Record<Gestion['estado'], string>> = {
     admision:      'Cerrar gestión',
 };
 
+const prevLabel: Partial<Record<Gestion['estado'], string>> = {
+    inscripcion: 'Configuración',
+    cursado:     'Inscripción',
+    admision:    'Cursado',
+    cerrada:     'Admisión',
+};
+
 function avanzar(g: Gestion) {
     const label = nextLabel[g.estado];
     if (!label) return;
     if (!confirm(`¿Avanzar la gestión ${g.anio}-${g.semestre} al estado "${label}"?\n\nEsta acción no se puede deshacer.`)) return;
     router.patch(`/administracion/gestiones/${g.id}/avanzar`);
+}
+
+function retroceder(g: Gestion) {
+    const label = prevLabel[g.estado];
+    if (!label) return;
+    if (!confirm(`¿Retroceder la gestión ${g.anio}-${g.semestre} al estado "${label}"?\n\nÚsalo solo para corregir un avance hecho por error. Los datos generados durante la etapa actual podrían quedar inconsistentes.`)) return;
+    router.patch(`/administracion/gestiones/${g.id}/retroceder`);
 }
 
 function eliminar(g: Gestion) {
@@ -133,12 +147,22 @@ function fmt(fecha: string | null): string {
 
                         <!-- Estado -->
                         <td class="px-5 py-4">
-                            <span
-                                class="inline-flex rounded-full px-2.5 py-0.5 text-xs font-semibold"
-                                :class="estadoConfig[g.estado].clases"
-                            >
-                                {{ estadoConfig[g.estado].label }}
-                            </span>
+                            <div class="flex items-center gap-2">
+                                <span
+                                    class="inline-flex rounded-full px-2.5 py-0.5 text-xs font-semibold"
+                                    :class="estadoConfig[g.estado].clases"
+                                >
+                                    {{ estadoConfig[g.estado].label }}
+                                </span>
+                                <span
+                                    v-if="g.id === activa_id"
+                                    class="inline-flex items-center gap-1 rounded-full border border-green-200 bg-green-50 px-2 py-0.5 text-xs font-semibold text-green-700"
+                                    title="Esta es la gestión activa que se muestra en el portal"
+                                >
+                                    <Star class="h-3 w-3 fill-green-500 text-green-500" />
+                                    Activa
+                                </span>
+                            </div>
                         </td>
 
                         <!-- Inscripción -->
@@ -204,6 +228,15 @@ function fmt(fecha: string | null): string {
                                     >
                                         <ArrowRight class="mr-2 h-4 w-4" />
                                         Avanzar a {{ nextLabel[g.estado] }}
+                                    </DropdownMenuItem>
+
+                                    <DropdownMenuItem
+                                        v-if="prevLabel[g.estado]"
+                                        class="cursor-pointer"
+                                        @select="retroceder(g)"
+                                    >
+                                        <ArrowLeft class="mr-2 h-4 w-4" />
+                                        Retroceder a {{ prevLabel[g.estado] }}
                                     </DropdownMenuItem>
 
                                     <DropdownMenuSeparator />

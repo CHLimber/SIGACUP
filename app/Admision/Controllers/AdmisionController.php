@@ -9,6 +9,7 @@ use App\GestionEstudiantes\Models\CandidatoEstudiante;
 use App\GestionEstudiantes\Models\Postulacion;
 use App\Http\Controllers\Controller;
 use App\InscripcionPagos\Models\Pago;
+use App\Mail\CandidatoRechazadoDefinitivamente;
 use App\Mail\DocenteAprobadoConCredenciales;
 use App\Mail\EstudianteAprobadoConPago;
 use App\Mail\RequisitosRequierenCorreccion;
@@ -170,10 +171,10 @@ class AdmisionController extends Controller
         $gestion = $postulacion->gestion;
         $montoBs = (float) ($gestion?->parametro('monto_matricula_bs') ?? config('sigacup.matricula.monto_bs', 800));
 
-        DB::transaction(function () use ($candidato, $postulacion, $montoBs) {
+        $pago = DB::transaction(function () use ($candidato, $postulacion, $montoBs): Pago {
             $candidato->update(['estado' => CandidatoEstudiante::ESTADO_APROBADO]);
 
-            Pago::create([
+            $pago = Pago::create([
                 'postulacion_id' => $postulacion->id,
                 'token_pago'     => Str::random(64),
                 'monto_bs'       => $montoBs,
@@ -184,16 +185,25 @@ class AdmisionController extends Controller
             ]);
 
             $postulacion->update(['estado_pago' => 'pendiente']);
+
+            return $pago;
         });
 
-        $candidato->load('postulacion.pago');
-        $pago = $candidato->postulacion?->pago;
+        $mailEnviado = true;
+        try {
+            Mail::to($candidato->email)->send(new EstudianteAprobadoConPago($candidato, $pago));
+        } catch (\Throwable) {
+            $mailEnviado = false;
+        }
 
-        Mail::to($candidato->email)->send(new EstudianteAprobadoConPago($candidato, $pago));
+        $mensaje = "Candidato {$candidato->apellido} {$candidato->nombres} aprobado.";
+        $mensaje .= $mailEnviado
+            ? ' Se le envió el link de pago de matrícula.'
+            : ' No se pudo enviar el email — verifique la configuración de correo.';
 
         return back()->with('flash', [
             'type'    => 'success',
-            'message' => "Candidato {$candidato->apellido} {$candidato->nombres} aprobado. Se le envió el link de pago de matrícula.",
+            'message' => $mensaje,
         ]);
     }
 
@@ -209,14 +219,25 @@ class AdmisionController extends Controller
 
         $request->validate(['motivo' => 'required|string|min:5|max:500']);
 
-        $candidato->update([
-            'estado'         => CandidatoEstudiante::ESTADO_RECHAZADO,
-            'motivo_rechazo' => $request->input('motivo'),
-        ]);
+        $candidato->load('persona');
 
-        return back()->with('flash', [
+        $nombre = "{$candidato->apellido} {$candidato->nombres}";
+        $email  = $candidato->email;
+        $ci     = $candidato->ci;
+        $motivo = (string) $request->input('motivo');
+
+        $mailEnviado = $this->enviarCorreoRechazo($email, $nombre, $ci, 'estudiante', $motivo);
+
+        $this->borrarCandidatoEstudiante($candidato);
+
+        $mensaje = "Solicitud de {$nombre} rechazada definitivamente y eliminada del sistema.";
+        $mensaje .= $mailEnviado
+            ? ' Se le envió un correo notificando la decisión.'
+            : ' No se pudo enviar el correo de notificación.';
+
+        return redirect()->route('admision.index')->with('flash', [
             'type'    => 'success',
-            'message' => "Solicitud de {$candidato->apellido} {$candidato->nombres} rechazada definitivamente.",
+            'message' => $mensaje,
         ]);
     }
 
@@ -295,14 +316,25 @@ class AdmisionController extends Controller
 
         $request->validate(['motivo' => 'required|string|min:5|max:500']);
 
-        $candidato->update([
-            'estado'         => CandidatoDocente::ESTADO_RECHAZADO,
-            'motivo_rechazo' => $request->input('motivo'),
-        ]);
+        $candidato->load('persona');
 
-        return back()->with('flash', [
+        $nombre = "{$candidato->apellido} {$candidato->nombres}";
+        $email  = $candidato->email;
+        $ci     = $candidato->ci;
+        $motivo = (string) $request->input('motivo');
+
+        $mailEnviado = $this->enviarCorreoRechazo($email, $nombre, $ci, 'docente', $motivo);
+
+        $this->borrarCandidatoDocente($candidato);
+
+        $mensaje = "Solicitud de {$nombre} rechazada definitivamente y eliminada del sistema.";
+        $mensaje .= $mailEnviado
+            ? ' Se le envió un correo notificando la decisión.'
+            : ' No se pudo enviar el correo de notificación.';
+
+        return redirect()->route('admision.index')->with('flash', [
             'type'    => 'success',
-            'message' => "Solicitud de {$candidato->apellido} {$candidato->nombres} rechazada definitivamente.",
+            'message' => $mensaje,
         ]);
     }
 
@@ -310,22 +342,7 @@ class AdmisionController extends Controller
     {
         $nombre = "{$candidato->apellido} {$candidato->nombres}";
 
-        $candidato->load('requisitos', 'postulaciones.pago');
-
-        DB::transaction(function () use ($candidato) {
-            foreach ($candidato->requisitos as $requisito) {
-                Storage::disk('local')->delete($requisito->ruta_archivo);
-            }
-            Storage::disk('local')->deleteDirectory("requisitos/estudiantes/{$candidato->id}");
-
-            foreach ($candidato->postulaciones as $postulacion) {
-                $postulacion->pago?->delete();
-                $postulacion->delete();
-            }
-
-            $candidato->requisitos()->delete();
-            $candidato->delete();
-        });
+        $this->borrarCandidatoEstudiante($candidato);
 
         return redirect()->route('admision.index')->with('flash', [
             'type'    => 'success',
@@ -337,22 +354,7 @@ class AdmisionController extends Controller
     {
         $nombre = "{$candidato->apellido} {$candidato->nombres}";
 
-        $candidato->load('requisitos');
-
-        DB::transaction(function () use ($candidato) {
-            foreach ($candidato->requisitos as $requisito) {
-                Storage::disk('local')->delete($requisito->ruta_archivo);
-            }
-            Storage::disk('local')->deleteDirectory("requisitos/docentes/{$candidato->id}");
-
-            $candidato->requisitos()->delete();
-
-            if ($candidato->user_id) {
-                User::destroy($candidato->user_id);
-            }
-
-            $candidato->delete();
-        });
+        $this->borrarCandidatoDocente($candidato);
 
         return redirect()->route('admision.index')->with('flash', [
             'type'    => 'success',
@@ -391,6 +393,10 @@ class AdmisionController extends Controller
             ? RequisitoDocente::ESTADO_RECHAZADO
             : RequisitoEstudiante::ESTADO_RECHAZADO;
 
+        $tienePostulacion = $tipo === 'estudiante'
+            ? $candidato->postulacion()->exists()
+            : true;
+
         return Inertia::render('Admision/RevisarCandidato', [
             'tipo'       => $tipo,
             'candidato'  => array_merge($candidato->toArray(), [
@@ -398,14 +404,96 @@ class AdmisionController extends Controller
             ]),
             'requisitos'    => $requisitos,
             'puedeAprobar'  => $this->todosRequisitosObligatoriosAprobados($candidato)
+                && $tienePostulacion
                 && in_array($candidato->estado, [
                     CandidatoEstudiante::ESTADO_EN_REVISION,
                     CandidatoEstudiante::ESTADO_REQUIERE_CORRECCIONES,
                 ], true),
-            'tieneRechazados' => $candidato->requisitos()
+            'tienePostulacion' => $tienePostulacion,
+            'tieneRechazados'  => $candidato->requisitos()
                 ->where('estado', $estadoRechazado)
                 ->exists(),
         ]);
+    }
+
+    private function enviarCorreoRechazo(?string $email, string $nombreCompleto, ?string $ci, string $tipo, string $motivo): bool
+    {
+        if (! $email) {
+            return false;
+        }
+
+        try {
+            Mail::to($email)->send(new CandidatoRechazadoDefinitivamente($nombreCompleto, $ci, $tipo, $motivo));
+
+            return true;
+        } catch (\Throwable) {
+            return false;
+        }
+    }
+
+    private function borrarCandidatoEstudiante(CandidatoEstudiante $candidato): void
+    {
+        $candidato->load(['requisitos', 'postulaciones.pago', 'persona']);
+
+        DB::transaction(function () use ($candidato) {
+            foreach ($candidato->requisitos as $requisito) {
+                Storage::disk('local')->delete($requisito->ruta_archivo);
+            }
+            Storage::disk('local')->deleteDirectory("requisitos/estudiantes/{$candidato->id}");
+
+            foreach ($candidato->postulaciones as $postulacion) {
+                $postulacion->pago?->delete();
+                $postulacion->delete();
+            }
+
+            $candidato->requisitos()->delete();
+            $persona = $candidato->persona;
+            $candidato->delete();
+
+            $this->borrarPersonaSiHuerfana($persona);
+        });
+    }
+
+    private function borrarCandidatoDocente(CandidatoDocente $candidato): void
+    {
+        $candidato->load(['requisitos', 'persona']);
+
+        DB::transaction(function () use ($candidato) {
+            foreach ($candidato->requisitos as $requisito) {
+                Storage::disk('local')->delete($requisito->ruta_archivo);
+            }
+            Storage::disk('local')->deleteDirectory("requisitos/docentes/{$candidato->id}");
+
+            $candidato->requisitos()->delete();
+
+            if ($candidato->user_id) {
+                User::destroy($candidato->user_id);
+            }
+
+            $persona = $candidato->persona;
+            $candidato->delete();
+
+            $this->borrarPersonaSiHuerfana($persona);
+        });
+    }
+
+    private function borrarPersonaSiHuerfana(?Persona $persona): void
+    {
+        if (! $persona) {
+            return;
+        }
+
+        $tieneUsuario = User::where('persona_id', $persona->id)->exists();
+        $tieneEstudiante = CandidatoEstudiante::where('persona_id', $persona->id)->exists();
+        $tieneDocente = CandidatoDocente::where('persona_id', $persona->id)->exists();
+
+        if (! $tieneUsuario && ! $tieneEstudiante && ! $tieneDocente) {
+            try {
+                $persona->delete();
+            } catch (\Throwable) {
+                // Conserva la persona si hay otras FK desconocidas que impidan borrarla.
+            }
+        }
     }
 
     private function todosRequisitosObligatoriosAprobados(Model $candidato): bool

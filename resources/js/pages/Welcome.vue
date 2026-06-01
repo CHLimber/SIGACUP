@@ -11,6 +11,12 @@ interface CarreraDB {
 
 const props = defineProps<{
     carreras: CarreraDB[];
+    nota_minima: number;
+    peso1: number;
+    peso2: number;
+    peso3: number;
+    gestion_label: string | null;
+    gestion_estado: string | null;
 }>();
 
 const carrerasDisplay: { nombre: string; icono: Component }[] = [
@@ -235,8 +241,8 @@ function submit() {
                     <p class="mb-6 text-base leading-relaxed text-gray-600">
                         El <strong class="text-[#073b75]">Curso Preuniversitario (CUP)</strong> es el proceso de admisión
                         mediante el cual los bachilleres demuestran competencias básicas en cuatro áreas.
-                        La aprobación requiere <strong>60 puntos o más en cada materia</strong>,
-                        con ponderación 30% · 30% · 40%.
+                        La aprobación requiere <strong>{{ props.nota_minima }} puntos o más en cada materia</strong>,
+                        con ponderación {{ props.peso1 }}% · {{ props.peso2 }}% · {{ props.peso3 }}%.
                     </p>
                     <div class="flex flex-wrap gap-3">
                         <span class="rounded border border-[#073b75]/20 bg-[#073b75]/5 px-4 py-1.5 text-sm font-medium text-[#073b75]">
@@ -288,14 +294,17 @@ function submit() {
             <div class="mb-10 text-center">
                 <h2 class="mb-4 text-2xl font-bold text-[#073b75]">Materias del CUP</h2>
                 <div class="mx-auto h-1 w-16 rounded bg-[#c70e0a]"></div>
-                <p class="mt-4 text-sm text-gray-500">3 exámenes por materia — Ponderación 30% · 30% · 40%</p>
+                <p class="mt-4 text-sm text-gray-500">3 exámenes por materia — Ponderación {{ props.peso1 }}% · {{ props.peso2 }}% · {{ props.peso3 }}%</p>
+                <p v-if="props.gestion_label" class="mt-2 text-xs font-medium text-[#073b75]/70">
+                    Gestión activa: {{ props.gestion_label }}
+                </p>
             </div>
             <div class="grid grid-cols-2 gap-6 md:grid-cols-4">
                 <div v-for="materia in materias" :key="materia.nombre"
                      class="rounded-xl bg-white p-6 text-center shadow-sm transition hover:shadow-md">
                     <component :is="materia.icono" class="mx-auto mb-3 h-10 w-10 text-[#073b75]" />
                     <h3 class="font-bold text-[#073b75]">{{ materia.nombre }}</h3>
-                    <p class="mt-1 text-xs text-gray-400">Mín. 60 puntos</p>
+                    <p class="mt-1 text-xs text-gray-400">Mín. {{ props.nota_minima }} puntos</p>
                     <div class="mx-auto mt-3 h-0.5 w-8 rounded bg-[#c70e0a]"></div>
                 </div>
             </div>

@@ -12,6 +12,7 @@ Route::middleware(['auth', 'verified'])->prefix('administracion')->group(functio
         ->except(['show'])
         ->parameters(['gestiones' => 'gestion']);
     Route::patch('gestiones/{gestion}/avanzar', [GestionController::class, 'avanzar'])->name('gestiones.avanzar');
+    Route::patch('gestiones/{gestion}/retroceder', [GestionController::class, 'retroceder'])->name('gestiones.retroceder');
 
     Route::middleware('role:administrador')->prefix('docentes')->name('docentes.')->group(function () {
         Route::get('/', [DocentesController::class, 'index'])->name('index');

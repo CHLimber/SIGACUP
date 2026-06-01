@@ -10,6 +10,16 @@ defineOptions({
     },
 });
 
+const props = defineProps<{
+    nota_minima: number;
+    peso1: number;
+    peso2: number;
+    peso3: number;
+    gestion_label: string | null;
+    gestion_estado: string | null;
+    candidatos: number;
+}>();
+
 const page = usePage();
 const user = computed(() => page.props.auth.user);
 
@@ -20,12 +30,12 @@ const roleLabel: Record<string, string> = {
     autoridad:     'Autoridad',
 };
 
-const stats: { label: string; valor: string; icono: Component; color: string }[] = [
-    { label: 'Candidatos inscritos',  valor: '—', icono: User,         color: '#073b75' },
-    { label: 'Materias activas',      valor: '4', icono: BookOpen,     color: '#073b75' },
-    { label: 'Exámenes programados',  valor: '—', icono: FileText,     color: '#c70e0a' },
-    { label: 'Aprobados hasta ahora', valor: '—', icono: CheckCircle2, color: '#15803d' },
-];
+const stats = computed<{ label: string; valor: string; icono: Component; color: string }[]>(() => [
+    { label: 'Candidatos inscritos', valor: String(props.candidatos), icono: User,         color: '#073b75' },
+    { label: 'Materias activas',     valor: '4',                      icono: BookOpen,     color: '#073b75' },
+    { label: 'Nota mínima',          valor: `${props.nota_minima} pts`, icono: CheckCircle2, color: '#15803d' },
+    { label: 'Ponderación exámenes', valor: `${props.peso1}·${props.peso2}·${props.peso3}`, icono: FileText, color: '#c70e0a' },
+]);
 
 const modulos: { nombre: string; descripcion: string; icono: Component }[] = [
     { nombre: 'Inscripción y Pagos',     descripcion: 'Gestión de candidatos y pagos del CUP.',        icono: CreditCard },
@@ -96,17 +106,20 @@ const modulos: { nombre: string; descripcion: string; icono: Component }[] = [
         <div class="rounded-xl border border-gray-100 bg-white p-5 shadow-sm">
             <div class="mb-4 flex items-center gap-3">
                 <h2 class="text-base font-bold text-[#073b75]">Estado del CUP</h2>
+                <span v-if="props.gestion_label" class="rounded-full border border-[#073b75]/20 bg-[#073b75]/5 px-3 py-0.5 text-xs font-medium text-[#073b75]">
+                    {{ props.gestion_label }}
+                </span>
                 <div class="h-px flex-1 bg-gray-100"></div>
             </div>
-            <div class="grid gap-4 md:grid-cols-3">
+            <div v-if="props.gestion_label" class="grid gap-4 md:grid-cols-3">
                 <div class="rounded-lg bg-gray-50 p-4 text-center">
                     <p class="text-xs text-gray-500">Ponderación de exámenes</p>
-                    <p class="mt-2 text-lg font-bold text-[#073b75]">30% · 30% · 40%</p>
+                    <p class="mt-2 text-lg font-bold text-[#073b75]">{{ props.peso1 }}% · {{ props.peso2 }}% · {{ props.peso3 }}%</p>
                     <p class="mt-1 text-xs text-gray-400">Parcial 1 · Parcial 2 · Final</p>
                 </div>
                 <div class="rounded-lg bg-gray-50 p-4 text-center">
                     <p class="text-xs text-gray-500">Nota mínima de aprobación</p>
-                    <p class="mt-2 text-lg font-bold text-[#c70e0a]">60 puntos</p>
+                    <p class="mt-2 text-lg font-bold text-[#c70e0a]">{{ props.nota_minima }} puntos</p>
                     <p class="mt-1 text-xs text-gray-400">Por materia — de forma independiente</p>
                 </div>
                 <div class="rounded-lg bg-gray-50 p-4 text-center">
@@ -114,6 +127,9 @@ const modulos: { nombre: string; descripcion: string; icono: Component }[] = [
                     <p class="mt-2 text-lg font-bold text-[#073b75]">4 carreras</p>
                     <p class="mt-1 text-xs text-gray-400">Ing. Sistemas · Informática · Robótica · Redes</p>
                 </div>
+            </div>
+            <div v-else class="rounded-lg bg-gray-50 p-8 text-center text-sm text-gray-400">
+                No hay ninguna gestión activa en este momento.
             </div>
         </div>
 
