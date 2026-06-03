@@ -4,6 +4,7 @@ namespace App\Models;
 
 // use Illuminate\Contracts\Auth\MustVerifyEmail;
 use App\Enums\UserRole;
+use App\GestionDocentes\Models\Docente;
 use Database\Factories\UserFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Attributes\Hidden;
@@ -36,5 +37,10 @@ class User extends Authenticatable implements PasskeyUser
     public function persona(): \Illuminate\Database\Eloquent\Relations\BelongsTo
     {
         return $this->belongsTo(Persona::class);
+    }
+
+    public function docente(): \Illuminate\Database\Eloquent\Relations\HasOne
+    {
+        return $this->hasOne(Docente::class);
     }
 }

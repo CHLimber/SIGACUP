@@ -2,9 +2,12 @@
 
 use App\AdministracionSistema\Controllers\GestionController;
 use App\Admision\Controllers\AdmisionController;
+use App\Admision\Controllers\ProcesoAdmisionController;
+use App\Calificaciones\Controllers\CalificacionesController;
 use App\GestionDocentes\Controllers\DocentesController;
 use App\GestionEstudiantes\Controllers\EstudiantesController;
 use App\OrganizacionAcademica\Controllers\GruposController;
+use App\Reportes\Controllers\ReporteController;
 use Illuminate\Support\Facades\Route;
 
 Route::middleware(['auth', 'verified'])->prefix('administracion')->group(function () {
@@ -31,8 +34,29 @@ Route::middleware(['auth', 'verified'])->prefix('administracion')->group(functio
         Route::get('/', [GruposController::class, 'seleccionar'])->name('seleccionar');
         Route::get('{gestion}', [GruposController::class, 'index'])->name('index');
         Route::post('{gestion}/generar', [GruposController::class, 'generar'])->name('generar');
+        Route::get('{gestion}/asignar-docentes', [GruposController::class, 'docentes'])->name('docentes');
+        Route::patch('{gestion}/asignar-docentes', [GruposController::class, 'asignarDocentes'])->name('docentes.guardar');
+        Route::post('{gestion}/asignar-docentes/auto', [GruposController::class, 'autoAsignarDocentes'])->name('docentes.auto');
         Route::get('{gestion}/{nombre}/configurar', [GruposController::class, 'configurar'])->name('configurar');
         Route::patch('{gestion}/{nombre}', [GruposController::class, 'actualizar'])->name('actualizar');
+    });
+
+    Route::prefix('calificaciones')->name('calificaciones.')->group(function () {
+        Route::get('/', [CalificacionesController::class, 'index'])->name('index');
+        Route::get('{grupo}', [CalificacionesController::class, 'calificar'])->name('calificar');
+        Route::put('{grupo}', [CalificacionesController::class, 'guardar'])->name('guardar');
+    });
+
+    Route::middleware('role:administrador,coordinador')->prefix('reportes')->name('reportes.')->group(function () {
+        Route::get('/', [ReporteController::class, 'index'])->name('index');
+        Route::get('resumen', [ReporteController::class, 'resumen'])->name('resumen');
+        Route::get('exportar/csv', [ReporteController::class, 'exportarCsv'])->name('exportar.csv');
+    });
+
+    Route::middleware('role:administrador,coordinador')->prefix('proceso-admision')->name('proceso-admision.')->group(function () {
+        Route::get('/', [ProcesoAdmisionController::class, 'index'])->name('index');
+        Route::get('{gestion}', [ProcesoAdmisionController::class, 'show'])->name('show');
+        Route::post('{gestion}/ejecutar', [ProcesoAdmisionController::class, 'ejecutar'])->name('ejecutar');
     });
 
     Route::middleware('role:administrador,coordinador')->prefix('admision')->name('admision.')->group(function () {

@@ -4,13 +4,21 @@ namespace App\GestionEstudiantes\Models;
 
 use App\AdministracionSistema\Models\Carrera;
 use App\AdministracionSistema\Models\Gestion;
+use App\Calificaciones\Models\Evaluacion;
 use App\InscripcionPagos\Models\Pago;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 
 class Postulacion extends Model
 {
+    public const ADMISION_PENDIENTE = 'pendiente';
+
+    public const ADMISION_ADMITIDO = 'admitido';
+
+    public const ADMISION_NO_ADMITIDO = 'no_admitido';
+
     protected $table = 'postulacion';
 
     protected $fillable = [
@@ -55,5 +63,10 @@ class Postulacion extends Model
     public function pago(): HasOne
     {
         return $this->hasOne(Pago::class);
+    }
+
+    public function evaluaciones(): HasMany
+    {
+        return $this->hasMany(Evaluacion::class);
     }
 }

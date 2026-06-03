@@ -3,6 +3,8 @@ import { Link } from '@inertiajs/vue3';
 import {
     BarChart3,
     BookOpen,
+    ClipboardCheck,
+    ClipboardList,
     CreditCard,
     FileText,
     GraduationCap,
@@ -59,6 +61,11 @@ const mainNavItems: NavItem[] = [
         icon: GraduationCap,
     },
     {
+        title: 'Calificaciones',
+        href: '/administracion/calificaciones',
+        icon: ClipboardList,
+    },
+    {
         title: 'Evaluación y Resultados',
         href: dashboard(),
         icon: BarChart3,
@@ -69,8 +76,13 @@ const mainNavItems: NavItem[] = [
         icon: UserCheck,
     },
     {
+        title: 'Proceso de admisión',
+        href: '/administracion/proceso-admision',
+        icon: ClipboardCheck,
+    },
+    {
         title: 'Reportes',
-        href: dashboard(),
+        href: '/administracion/reportes',
         icon: FileText,
     },
     {

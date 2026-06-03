@@ -51,6 +51,7 @@ class CatalogosSeeder extends Seeder
             ['clave' => 'peso_examen_2',          'tipo' => 'entero',  'descripcion' => 'Peso % del segundo parcial',              'created_at' => now(), 'updated_at' => now()],
             ['clave' => 'peso_examen_3',          'tipo' => 'entero',  'descripcion' => 'Peso % del examen final',                 'created_at' => now(), 'updated_at' => now()],
             ['clave' => 'nota_minima_aprobacion', 'tipo' => 'entero',  'descripcion' => 'Nota mínima por materia para aprobar',    'created_at' => now(), 'updated_at' => now()],
+            ['clave' => 'max_grupos_docente',     'tipo' => 'entero',  'descripcion' => 'Máximo de grupos por docente',            'created_at' => now(), 'updated_at' => now()],
         ]);
 
         $gestiones = DB::table('gestion')->pluck('id');
@@ -61,6 +62,7 @@ class CatalogosSeeder extends Seeder
             ['clave' => 'peso_examen_2',          'valor' => '30'],
             ['clave' => 'peso_examen_3',          'valor' => '40'],
             ['clave' => 'nota_minima_aprobacion', 'valor' => '60'],
+            ['clave' => 'max_grupos_docente',     'valor' => '5'],
         ];
 
         foreach ($gestiones as $gestion_id) {
@@ -90,6 +92,21 @@ class CatalogosSeeder extends Seeder
                 'created_at'        => now(),
                 'updated_at'        => now(),
             ]);
+        }
+
+        // Cupos por carrera y gestión (usados por el proceso de admisión).
+        $carreras = DB::table('carrera')->pluck('id');
+
+        foreach ($gestiones as $gestion_id) {
+            foreach ($carreras as $carrera_id) {
+                DB::table('cupo_carrera')->insert([
+                    'carrera_id' => $carrera_id,
+                    'gestion_id' => $gestion_id,
+                    'cupo_max'   => 30,
+                    'created_at' => now(),
+                    'updated_at' => now(),
+                ]);
+            }
         }
     }
 }
