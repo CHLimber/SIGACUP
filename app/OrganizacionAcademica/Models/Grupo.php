@@ -4,14 +4,18 @@ namespace App\OrganizacionAcademica\Models;
 
 use App\AdministracionSistema\Models\Gestion;
 use App\AdministracionSistema\Models\Materia;
-use App\GestionDocentes\Models\Docente;
-use App\GestionEstudiantes\Models\Postulacion;
+use App\RegistroInscripcion\Models\Postulacion;
+use App\SeguridadAcceso\Concerns\RegistraBitacora;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 
 class Grupo extends Model
 {
+    use RegistraBitacora;
+
+    protected string $bitacoraEtiqueta = 'Grupo';
+
     protected $table = 'grupo';
 
     protected $fillable = [

@@ -4,13 +4,7 @@ import { Head, Link, useForm } from '@inertiajs/vue3';
 import { dashboard, login } from '@/routes';
 import { Monitor, Bot, Globe, Ruler, Type, Atom, Trophy, GraduationCap, FlaskConical, BarChart2 } from 'lucide-vue-next';
 
-interface CarreraDB {
-    id: number;
-    nombre: string;
-}
-
 const props = defineProps<{
-    carreras: CarreraDB[];
     nota_minima: number;
     peso1: number;
     peso2: number;
@@ -63,8 +57,6 @@ const form = useForm({
     telefono:         '',
     email:            '',
     direccion:        '',
-    carrera1_id:      null as number | null,
-    carrera2_id:      null as number | null,
 });
 
 // Tema visual: rojo para estudiante, azul para docente
@@ -527,61 +519,13 @@ function submit() {
                     </div>
                 </div>
 
-                <!-- Sección Carreras (solo estudiante) -->
-                <template v-if="tipoRegistro === 'estudiante'">
-                    <div class="border-y border-gray-100 px-6 py-3" style="background-color: #c70e0a;">
-                        <h3 class="text-sm font-semibold uppercase tracking-wider text-white">Preferencia de carrera</h3>
-                    </div>
-                    <div class="grid grid-cols-1 gap-5 p-6 sm:grid-cols-2">
-                        <!-- 1ra opción -->
-                        <div class="flex flex-col gap-1.5">
-                            <label class="text-sm font-medium text-gray-700">1ra opción <span class="text-red-500">*</span></label>
-                            <select
-                                v-model="form.carrera1_id"
-                                required
-                                class="rounded-md border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 shadow-sm focus:outline-none focus:ring-2 focus:ring-[#c70e0a]"
-                                :class="{ 'border-red-400': form.errors.carrera1_id }"
-                            >
-                                <option :value="null" disabled>Selecciona una carrera</option>
-                                <option
-                                    v-for="c in carreras"
-                                    :key="c.id"
-                                    :value="c.id"
-                                    :disabled="c.id === form.carrera2_id"
-                                >{{ c.nombre }}</option>
-                            </select>
-                            <p v-if="form.errors.carrera1_id" class="text-xs text-red-600">
-                                {{ form.errors.carrera1_id }}
-                            </p>
-                        </div>
-
-                        <!-- 2da opción -->
-                        <div class="flex flex-col gap-1.5">
-                            <label class="text-sm font-medium text-gray-700">2da opción <span class="text-red-500">*</span></label>
-                            <select
-                                v-model="form.carrera2_id"
-                                required
-                                class="rounded-md border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 shadow-sm focus:outline-none focus:ring-2 focus:ring-[#c70e0a]"
-                                :class="{ 'border-red-400': form.errors.carrera2_id }"
-                            >
-                                <option :value="null" disabled>Selecciona una carrera</option>
-                                <option
-                                    v-for="c in carreras"
-                                    :key="c.id"
-                                    :value="c.id"
-                                    :disabled="c.id === form.carrera1_id"
-                                >{{ c.nombre }}</option>
-                            </select>
-                            <p v-if="form.errors.carrera2_id" class="text-xs text-red-600">
-                                {{ form.errors.carrera2_id }}
-                            </p>
-                        </div>
-
-                        <p class="text-xs text-gray-400 sm:col-span-2">
-                            Las dos opciones deben ser distintas. Si hay cupos disponibles, se asignará la carrera en orden de preferencia.
-                        </p>
-                    </div>
-                </template>
+                <!-- Aviso datos académicos (solo estudiante) -->
+                <div
+                    v-if="tipoRegistro === 'estudiante'"
+                    class="border-y border-gray-100 bg-red-50 px-6 py-3 text-xs text-red-900"
+                >
+                    📝 Tus carreras de preferencia y tus datos académicos (año de egreso, unidad educativa y tipo de colegio) los completarás en tu portal personal, a través del enlace que te enviaremos por correo.
+                </div>
 
                 <!-- Botones -->
                 <div class="flex justify-end gap-3 border-t border-gray-100 px-6 py-4">

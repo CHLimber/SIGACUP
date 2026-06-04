@@ -7,7 +7,7 @@ use App\AdministracionSistema\Models\Gestion;
 use App\AdministracionSistema\Models\Parametro;
 use App\AdministracionSistema\Requests\StoreGestionRequest;
 use App\AdministracionSistema\Requests\UpdateGestionRequest;
-use App\Calificaciones\Actions\CompletarNotasFaltantes;
+use App\EvaluacionAdmision\Actions\CompletarNotasFaltantes;
 use App\Http\Controllers\Controller;
 use Illuminate\Database\QueryException;
 use Illuminate\Http\RedirectResponse;

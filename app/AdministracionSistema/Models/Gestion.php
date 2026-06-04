@@ -2,7 +2,8 @@
 
 namespace App\AdministracionSistema\Models;
 
-use App\GestionEstudiantes\Models\Postulacion;
+use App\RegistroInscripcion\Models\Postulacion;
+use App\SeguridadAcceso\Concerns\RegistraBitacora;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -18,6 +19,10 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 ])]
 class Gestion extends Model
 {
+    use RegistraBitacora;
+
+    protected string $bitacoraEtiqueta = 'Gestión';
+
     protected $table = 'gestion';
 
     protected function casts(): array

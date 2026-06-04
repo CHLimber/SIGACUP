@@ -11,6 +11,7 @@ use Laravel\Fortify\Fortify;
 class AutenticarUsuario
 {
     private const INTENTOS_POR_BLOQUEO = 3;
+
     private const DURACIONES = [1, 3, 5, 15]; // minutos por bloqueo consecutivo
 
     public function __invoke(Request $request): ?User
@@ -39,12 +40,13 @@ class AutenticarUsuario
 
             // Cada 3 fallos se aplica un bloqueo incremental
             if ($intentos % self::INTENTOS_POR_BLOQUEO === 0) {
-                $indice  = (int) ($intentos / self::INTENTOS_POR_BLOQUEO) - 1;
+                $indice = (int) ($intentos / self::INTENTOS_POR_BLOQUEO) - 1;
                 $minutos = self::DURACIONES[min($indice, count(self::DURACIONES) - 1)];
                 $data['bloqueado_hasta'] = now()->addMinutes($minutos);
             }
 
             $user->update($data);
+
             return null;
         }
 

@@ -1,19 +1,25 @@
 <script setup lang="ts">
-import { Link } from '@inertiajs/vue3';
+import { Link, usePage } from '@inertiajs/vue3';
 import {
+    Award,
     BarChart3,
     BookOpen,
+    CalendarRange,
     ClipboardCheck,
     ClipboardList,
-    CreditCard,
     FileText,
     GraduationCap,
+    KeyRound,
     LayoutGrid,
     Presentation,
+    ScrollText,
     Settings,
+    ShieldCheck,
     UserCheck,
+    UserCog,
     Users2,
 } from 'lucide-vue-next';
+import { computed } from 'vue';
 import AppLogo from '@/components/AppLogo.vue';
 import NavMain from '@/components/NavMain.vue';
 import NavUser from '@/components/NavUser.vue';
@@ -27,70 +33,134 @@ import {
     SidebarMenuItem,
 } from '@/components/ui/sidebar';
 import { dashboard } from '@/routes';
-import type { NavItem } from '@/types';
+import type { Auth, NavGroup, NavItem } from '@/types';
 
-const mainNavItems: NavItem[] = [
+const page = usePage<{ auth: Auth }>();
+
+const dashboardItem: NavItem = {
+    title: 'Inicio',
+    href: dashboard(),
+    icon: LayoutGrid,
+};
+
+const allGroups: NavGroup[] = [
     {
-        title: 'Inicio',
-        href: dashboard(),
-        icon: LayoutGrid,
+        title: 'Seguridad y acceso',
+        icon: ShieldCheck,
+        items: [
+            {
+                title: 'Usuarios',
+                href: '/administracion/usuarios',
+                icon: UserCog,
+                permiso: 'usuarios.gestionar',
+            },
+            {
+                title: 'Roles y permisos',
+                href: '/administracion/roles',
+                icon: KeyRound,
+                permiso: 'roles.gestionar',
+            },
+            {
+                title: 'Bitácora',
+                href: '/administracion/bitacora',
+                icon: ScrollText,
+                permiso: 'bitacora.ver',
+            },
+        ],
     },
     {
-        title: 'Inscripción y Pagos',
-        href: dashboard(),
-        icon: CreditCard,
-    },
-    {
-        title: 'Organización Académica',
-        href: dashboard(),
-        icon: BookOpen,
-    },
-    {
-        title: 'Gestionar Grupos',
-        href: '/administracion/grupos',
-        icon: Users2,
-    },
-    {
-        title: 'Gestionar Docentes',
-        href: '/administracion/docentes',
-        icon: Presentation,
-    },
-    {
-        title: 'Gestionar Estudiantes',
-        href: '/administracion/estudiantes',
-        icon: GraduationCap,
-    },
-    {
-        title: 'Calificaciones',
-        href: '/administracion/calificaciones',
-        icon: ClipboardList,
-    },
-    {
-        title: 'Evaluación y Resultados',
-        href: dashboard(),
-        icon: BarChart3,
-    },
-    {
-        title: 'Admisión de candidatos',
-        href: '/administracion/admision',
-        icon: UserCheck,
-    },
-    {
-        title: 'Proceso de admisión',
-        href: '/administracion/proceso-admision',
-        icon: ClipboardCheck,
-    },
-    {
-        title: 'Reportes',
-        href: '/administracion/reportes',
-        icon: FileText,
-    },
-    {
-        title: 'Administración',
-        href: '/administracion/gestiones',
+        title: 'Administración del sistema',
         icon: Settings,
+        items: [
+            {
+                title: 'Gestiones académicas',
+                href: '/administracion/gestiones',
+                icon: CalendarRange,
+                permiso: 'gestiones.gestionar',
+            },
+        ],
+    },
+    {
+        title: 'Registro e inscripción',
+        icon: ClipboardList,
+        items: [
+            {
+                title: 'Estudiantes',
+                href: '/administracion/estudiantes',
+                icon: GraduationCap,
+                permiso: 'estudiantes.gestionar',
+            },
+        ],
+    },
+    {
+        title: 'Organización académica',
+        icon: BookOpen,
+        items: [
+            {
+                title: 'Grupos',
+                href: '/administracion/grupos',
+                icon: Users2,
+                permiso: 'grupos.gestionar',
+            },
+            {
+                title: 'Docentes',
+                href: '/administracion/docentes',
+                icon: Presentation,
+                permiso: 'docentes.gestionar',
+            },
+        ],
+    },
+    {
+        title: 'Evaluación y admisión',
+        icon: ClipboardCheck,
+        items: [
+            {
+                title: 'Calificaciones',
+                href: '/administracion/calificaciones',
+                icon: ClipboardList,
+                permiso: 'calificaciones.gestionar',
+            },
+            {
+                title: 'Admisión de candidatos',
+                href: '/administracion/admision',
+                icon: UserCheck,
+                permiso: 'admision.gestionar',
+            },
+            {
+                title: 'Proceso de admisión',
+                href: '/administracion/proceso-admision',
+                icon: Award,
+                permiso: 'proceso_admision.gestionar',
+            },
+        ],
+    },
+    {
+        title: 'Reportes y notificaciones',
+        icon: BarChart3,
+        items: [
+            {
+                title: 'Reportes',
+                href: '/administracion/reportes',
+                icon: FileText,
+                permiso: 'reportes.ver',
+            },
+        ],
     },
 ];
+
+const navGroups = computed<NavGroup[]>(() => {
+    const { permisos = [], esAdmin = false } = page.props.auth ?? {};
+
+    const puedeVer = (item: NavItem) =>
+        !item.permiso || esAdmin || permisos.includes(item.permiso);
+
+    return allGroups
+        .map((grupo) => ({
+            ...grupo,
+            items: grupo.items.filter(puedeVer),
+        }))
+        .filter((grupo) => grupo.items.length > 0);
+});
 </script>
 
 <template>
@@ -108,7 +178,7 @@ const mainNavItems: NavItem[] = [
         </SidebarHeader>
 
         <SidebarContent>
-            <NavMain :items="mainNavItems" />
+            <NavMain :items="[dashboardItem]" :groups="navGroups" />
         </SidebarContent>
 
         <SidebarFooter>

@@ -2,8 +2,8 @@
 
 namespace App\Mail;
 
-use App\GestionEstudiantes\Models\CandidatoEstudiante;
-use App\InscripcionPagos\Models\Pago;
+use App\RegistroInscripcion\Models\CandidatoEstudiante;
+use App\RegistroInscripcion\Models\Pago;
 use Illuminate\Bus\Queueable;
 use Illuminate\Mail\Mailable;
 use Illuminate\Mail\Mailables\Content;
@@ -30,8 +30,8 @@ class EstudianteAprobadoConPago extends Mailable
             view: 'emails.estudiante-aprobado-con-pago',
             with: [
                 'candidato' => $this->candidato,
-                'pago'      => $this->pago,
-                'pagoUrl'   => route('portal.matricula.show', ['token' => $this->pago->token_pago]),
+                'pago' => $this->pago,
+                'pagoUrl' => route('portal.matricula.show', ['token' => $this->pago->token_pago]),
             ],
         );
     }

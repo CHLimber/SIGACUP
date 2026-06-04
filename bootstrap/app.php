@@ -1,5 +1,7 @@
 <?php
 
+use App\Http\Middleware\EnsurePermiso;
+use App\Http\Middleware\EnsureRole;
 use App\Http\Middleware\HandleAppearance;
 use App\Http\Middleware\HandleInertiaRequests;
 use Illuminate\Foundation\Application;
@@ -26,7 +28,8 @@ return Application::configure(basePath: dirname(__DIR__))
         ]);
 
         $middleware->alias([
-            'role' => \App\Http\Middleware\EnsureRole::class,
+            'role' => EnsureRole::class,
+            'permiso' => EnsurePermiso::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {

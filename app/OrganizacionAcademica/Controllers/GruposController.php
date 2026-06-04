@@ -3,13 +3,13 @@
 namespace App\OrganizacionAcademica\Controllers;
 
 use App\AdministracionSistema\Models\Gestion;
-use App\GestionDocentes\Models\Docente;
-use App\GestionEstudiantes\Models\CandidatoEstudiante;
-use App\GestionEstudiantes\Models\Postulacion;
 use App\Http\Controllers\Controller;
 use App\OrganizacionAcademica\Models\Aula;
+use App\OrganizacionAcademica\Models\Docente;
 use App\OrganizacionAcademica\Models\Grupo;
 use App\OrganizacionAcademica\Models\Horario;
+use App\RegistroInscripcion\Models\CandidatoEstudiante;
+use App\RegistroInscripcion\Models\Postulacion;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;

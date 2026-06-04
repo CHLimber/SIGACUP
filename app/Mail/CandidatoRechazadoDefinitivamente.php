@@ -30,9 +30,9 @@ class CandidatoRechazadoDefinitivamente extends Mailable
             view: 'emails.candidato-rechazado',
             with: [
                 'nombreCompleto' => $this->nombreCompleto,
-                'ci'             => $this->ci,
-                'tipo'           => $this->tipo,
-                'motivo'         => $this->motivo,
+                'ci' => $this->ci,
+                'tipo' => $this->tipo,
+                'motivo' => $this->motivo,
             ],
         );
     }

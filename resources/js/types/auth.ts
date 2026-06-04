@@ -15,6 +15,9 @@ export type User = {
 
 export type Auth = {
     user: User;
+    permisos: string[];
+    esAdmin: boolean;
+    rol: string | null;
 };
 
 /* @chisel-passkeys */

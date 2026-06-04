@@ -2,7 +2,7 @@
 
 namespace App\Mail;
 
-use App\GestionDocentes\Models\CandidatoDocente;
+use App\OrganizacionAcademica\Models\CandidatoDocente;
 use Illuminate\Bus\Queueable;
 use Illuminate\Mail\Mailable;
 use Illuminate\Mail\Mailables\Content;
