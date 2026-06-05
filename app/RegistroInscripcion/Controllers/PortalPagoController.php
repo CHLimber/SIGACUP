@@ -2,10 +2,8 @@
 
 namespace App\RegistroInscripcion\Controllers;
 
-use App\Enums\UserRole;
 use App\Http\Controllers\Controller;
-use App\Mail\EstudianteCredencialesMatricula;
-use App\Models\User;
+use App\Mail\EstudianteMatriculaConfirmada;
 use App\RegistroInscripcion\Models\CandidatoEstudiante;
 use App\RegistroInscripcion\Models\Pago;
 use Illuminate\Http\JsonResponse;
@@ -14,7 +12,6 @@ use Illuminate\Http\Request;
 use Illuminate\Http\Response as HttpResponse;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Mail;
-use Illuminate\Support\Str;
 use Inertia\Inertia;
 use Inertia\Response;
 use Stripe\StripeClient;
@@ -109,25 +106,9 @@ class PortalPagoController extends Controller
                 : back()->with('flash', ['type' => 'error', 'message' => 'El pago no se completó. Verifica los datos de tu tarjeta.']);
         }
 
-        $passwordTemporal = Str::random(12);
-
-        DB::transaction(function () use ($pago, $intent, $passwordTemporal) {
+        DB::transaction(function () use ($pago, $intent) {
             $candidato = $pago->postulacion->candidatoEstudiante;
             $persona = $candidato->persona;
-
-            $user = User::create([
-                'persona_id' => $persona->id,
-                'name' => $persona->apellido.' '.$persona->nombres,
-                'email' => $persona->email,
-                'password' => $passwordTemporal,
-                'role' => UserRole::Estudiante,
-                'username' => 'tmp_'.uniqid(),
-            ]);
-
-            $apellido = strtolower(Str::ascii($persona->apellido));
-            $primerNombre = strtolower(Str::ascii(Str::of($persona->nombres)->explode(' ')->first()));
-            $user->username = $apellido.$primerNombre.$user->id;
-            $user->save();
 
             $pago->update([
                 'estado' => Pago::ESTADO_COMPLETADO,
@@ -137,13 +118,10 @@ class PortalPagoController extends Controller
 
             $pago->postulacion->update(['estado_pago' => 'completado']);
 
-            $candidato->update([
-                'estado' => CandidatoEstudiante::ESTADO_PAGADO,
-                'user_id' => $user->id,
-            ]);
+            $candidato->update(['estado' => CandidatoEstudiante::ESTADO_PAGADO]);
 
             Mail::to($persona->email)->send(
-                new EstudianteCredencialesMatricula($pago->fresh()->load('postulacion.candidatoEstudiante.persona'), $user->username, $passwordTemporal),
+                new EstudianteMatriculaConfirmada($pago->fresh()->load('postulacion.candidatoEstudiante.persona')),
             );
         });
 
@@ -154,7 +132,7 @@ class PortalPagoController extends Controller
         return redirect($urlComprobante)
             ->with('flash', [
                 'type' => 'success',
-                'message' => '¡Pago confirmado! Te enviamos tus credenciales por correo.',
+                'message' => '¡Pago confirmado! Te enviamos la confirmación de tu matrícula por correo. Podrás consultar tus resultados por CI en la página de inicio.',
             ]);
     }
 

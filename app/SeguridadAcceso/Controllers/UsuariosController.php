@@ -5,18 +5,21 @@ namespace App\SeguridadAcceso\Controllers;
 use App\AdministracionSistema\Models\Gestion;
 use App\Http\Controllers\Controller;
 use App\Models\User;
+use App\SeguridadAcceso\Actions\ImportarUsuariosCsv;
 use App\SeguridadAcceso\Models\Rol;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\Rules\Password;
 use Inertia\Inertia;
 use Inertia\Response;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class UsuariosController extends Controller
 {
-    /** Roles de personal que NO se generan por flujos automáticos (admisión / portal). */
-    private const ROLES_AUTOMATICOS = ['docente', 'estudiante'];
+    /** Roles que NO se generan manualmente (se crean por el flujo de admisión). */
+    private const ROLES_AUTOMATICOS = ['docente'];
 
     public function index(Request $request): Response
     {
@@ -30,11 +33,7 @@ class UsuariosController extends Controller
                         $sub->where('role', 'docente')
                             ->whereHas('docente', fn ($d) => $d->whereHas('grupos', fn ($g) => $g->where('gestion_id', $gid)));
                     })
-                        ->orWhere(function ($sub) use ($gid) {
-                            $sub->where('role', 'estudiante')
-                                ->whereHas('candidatoEstudiante', fn ($ce) => $ce->whereHas('postulaciones', fn ($p) => $p->where('gestion_id', $gid)));
-                        })
-                        ->orWhereNotIn('role', ['docente', 'estudiante']);
+                        ->orWhere('role', '!=', 'docente');
                 });
             });
 
@@ -83,7 +82,7 @@ class UsuariosController extends Controller
             'name' => ['required', 'string', 'max:255'],
             'username' => ['required', 'string', 'max:255', 'alpha_dash', Rule::unique('users', 'username')],
             'email' => ['required', 'email', 'max:255', Rule::unique('users', 'email')],
-            'password' => ['required', 'string', 'min:8'],
+            'password' => ['required', 'string', Password::default()],
             'role' => ['required', 'string', Rule::exists('rol', 'nombre')],
         ]);
 
@@ -106,7 +105,7 @@ class UsuariosController extends Controller
             'name' => ['required', 'string', 'max:255'],
             'email' => ['required', 'email', 'max:255', Rule::unique('users', 'email')->ignore($user->id)],
             'role' => ['required', 'string', Rule::exists('rol', 'nombre')],
-            'password' => ['nullable', 'string', 'min:8'],
+            'password' => ['nullable', 'string', Password::default()],
         ]);
 
         if ($user->id === $request->user()->id && $data['role'] !== $user->role) {
@@ -126,6 +125,59 @@ class UsuariosController extends Controller
         $user->save();
 
         return back()->with('flash', ['type' => 'success', 'message' => 'Usuario actualizado.']);
+    }
+
+    /** Descarga la plantilla CSV para carga masiva. */
+    public function plantillaCsv(ImportarUsuariosCsv $importador): StreamedResponse
+    {
+        $contenido = $importador->plantilla();
+
+        return response()->streamDownload(function () use ($contenido) {
+            echo $contenido;
+        }, 'plantilla_usuarios.csv', ['Content-Type' => 'text/csv; charset=UTF-8']);
+    }
+
+    /** Recibe el CSV, valida y devuelve la previsualización (válidos + errores). */
+    public function previsualizarImport(Request $request, ImportarUsuariosCsv $importador): RedirectResponse
+    {
+        $request->validate([
+            'archivo' => ['required', 'file', 'mimes:csv,txt', 'max:2048'],
+        ]);
+
+        $preview = $importador->previsualizar($request->file('archivo'));
+
+        // Guardamos los válidos para confirmarlos en el paso siguiente.
+        $request->session()->put('import_usuarios_validos', $preview['validos']);
+
+        return back()->with('import_preview', [
+            'validos' => array_map(fn ($v) => [
+                'linea' => $v['linea'],
+                'name' => $v['name'],
+                'username' => $v['username'],
+                'email' => $v['email'],
+                'role' => $v['role'],
+                'password_generada' => $v['password_generada'],
+            ], $preview['validos']),
+            'errores' => $preview['errores'],
+        ]);
+    }
+
+    /** Confirma e inserta los usuarios válidos previsualizados. */
+    public function importar(Request $request, ImportarUsuariosCsv $importador): RedirectResponse
+    {
+        $validos = $request->session()->pull('import_usuarios_validos', []);
+
+        if (empty($validos)) {
+            return back()->with('flash', ['type' => 'error', 'message' => 'No hay usuarios para importar. Volvé a cargar el archivo.']);
+        }
+
+        $enviarCorreo = $request->boolean('enviar_correo');
+        $creados = $importador->importar($validos, $enviarCorreo);
+
+        return back()->with('flash', [
+            'type' => 'success',
+            'message' => "{$creados} usuario(s) importado(s) correctamente.".($enviarCorreo ? ' Se enviaron las credenciales por correo.' : ''),
+        ]);
     }
 
     public function toggleActivo(Request $request, User $user): RedirectResponse

@@ -626,33 +626,12 @@ class Gestion2024_2Seeder extends Seeder
             'updated_at' => $this->nowStr,
         ]);
 
-        $userId = null;
-        if ($conUser) {
-            $num4 = str_pad((string) $this->estUser, 4, '0', STR_PAD_LEFT);
-            $userId = DB::table('users')->insertGetId([
-                'persona_id' => $personaId,
-                'name' => "{$nombres} {$apellido}",
-                'username' => "est_{$num4}",
-                'email' => "est{$num4}@ficct.edu.bo",
-                'email_verified_at' => $this->nowStr,
-                'password' => $hashPwd,
-                'role' => 'estudiante',
-                'activo' => true,
-                'intentos_fallidos' => 0,
-                'bloqueado_hasta' => null,
-                'created_at' => $this->nowStr,
-                'updated_at' => $this->nowStr,
-            ]);
-            $this->estUser++;
-        }
-
         $token = bin2hex(random_bytes(32));
         $candId = DB::table('candidato_estudiante')->insertGetId([
             'persona_id' => $personaId,
             'estado' => $estado,
             'token_acceso' => $token,
             'motivo_rechazo' => $motivoRechazo,
-            'user_id' => $userId,
             'created_at' => $this->nowStr,
             'updated_at' => $this->nowStr,
         ]);

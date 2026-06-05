@@ -6,7 +6,6 @@ namespace App\Models;
 use App\Enums\UserRole;
 use App\OrganizacionAcademica\Models\CandidatoDocente;
 use App\OrganizacionAcademica\Models\Docente;
-use App\RegistroInscripcion\Models\CandidatoEstudiante;
 use App\SeguridadAcceso\Concerns\RegistraBitacora;
 use App\SeguridadAcceso\Models\Rol;
 use Database\Factories\UserFactory;
@@ -55,11 +54,6 @@ class User extends Authenticatable implements PasskeyUser
     public function docente(): HasOne
     {
         return $this->hasOne(Docente::class);
-    }
-
-    public function candidatoEstudiante(): HasOne
-    {
-        return $this->hasOne(CandidatoEstudiante::class);
     }
 
     public function candidatoDocente(): HasOne

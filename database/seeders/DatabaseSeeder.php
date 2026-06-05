@@ -59,5 +59,14 @@ class DatabaseSeeder extends Seeder
                 ],
             );
         }
+
+        // Datos de gestiones para reportes y comparativas (brief: ≥ 3 gestiones).
+        // Tras correr, la gestión activa es 2026-1 (estado «admision»); el resto, cerradas.
+        $this->call([
+            Gestion2024_2Seeder::class,
+            Gestion2025_1Seeder::class,
+            Gestion2025_2Seeder::class,
+            Gestion2026_1Seeder::class,
+        ]);
     }
 }

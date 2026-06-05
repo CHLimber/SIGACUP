@@ -1,7 +1,8 @@
 <script setup lang="ts">
 import { Head, router, useForm } from '@inertiajs/vue3';
-import { computed, ref, type Component } from 'vue';
 import { Clock, Check, X, GraduationCap, UserCheck, ClipboardList, Paperclip, Loader2, RefreshCw, Upload, BriefcaseBusiness, School } from 'lucide-vue-next';
+import { computed, ref  } from 'vue';
+import type {Component} from 'vue';
 
 type EstadoArchivo = 'pendiente_revision' | 'aprobado' | 'rechazado';
 type EstadoCandidato = 'pendiente' | 'en_revision' | 'requiere_correcciones' | 'aprobado_pendiente_pago' | 'pagado' | 'rechazado';
@@ -125,17 +126,24 @@ const faltaDatosAcademicos = computed(() =>
 );
 
 const mensajeBotonEnviar = computed(() => {
-    if (props.puedeEnviar) return 'Listo para enviar';
+    if (props.puedeEnviar) {
+return 'Listo para enviar';
+}
+
     const partes: string[] = [];
+
     if (obligatoriosFaltantes.value > 0) {
         partes.push(`${obligatoriosFaltantes.value} requisito(s) obligatorio(s)`);
     }
+
     if (faltaDatosProfesionales.value) {
         partes.push('datos profesionales');
     }
+
     if (faltaDatosAcademicos.value) {
         partes.push('datos académicos');
     }
+
     return 'Faltan: ' + partes.join(' · ');
 });
 
@@ -146,9 +154,18 @@ const totalRechazados = computed(() =>
 function puedeEditarRequisito(req: RequisitoItem): boolean {
     if (props.candidato.estado === 'aprobado_pendiente_pago'
         || props.candidato.estado === 'pagado'
-        || props.candidato.estado === 'rechazado') return false;
-    if (props.candidato.estado === 'en_revision') return false;
-    if (req.archivo?.estado === 'aprobado') return false;
+        || props.candidato.estado === 'rechazado') {
+return false;
+}
+
+    if (props.candidato.estado === 'en_revision') {
+return false;
+}
+
+    if (req.archivo?.estado === 'aprobado') {
+return false;
+}
+
     return true;
 }
 
@@ -167,7 +184,10 @@ function urlDescargar(codigo: string): string {
 function onArchivoSeleccionado(event: Event, codigo: string) {
     const input = event.target as HTMLInputElement;
     const file = input.files?.[0];
-    if (!file) return;
+
+    if (!file) {
+return;
+}
 
     subiendo.value = codigo;
     errores.value[codigo] = '';
@@ -186,13 +206,19 @@ function onArchivoSeleccionado(event: Event, codigo: string) {
 }
 
 function eliminarArchivo(codigo: string) {
-    if (!confirm('¿Eliminar este archivo? Tendrás que volver a subirlo.')) return;
+    if (!confirm('¿Eliminar este archivo? Tendrás que volver a subirlo.')) {
+return;
+}
+
     router.delete(`/candidato/${props.token}/requisitos/${codigo}`, { preserveScroll: true });
 }
 
 const enviarForm = useForm({});
 function enviarRevision() {
-    if (!confirm('¿Confirmas el envío? Una vez enviada no podrás modificar los archivos hasta que la coordinación responda.')) return;
+    if (!confirm('¿Confirmas el envío? Una vez enviada no podrás modificar los archivos hasta que la coordinación responda.')) {
+return;
+}
+
     enviarForm.post(urlEnviar(), { preserveScroll: true });
 }
 
@@ -240,10 +266,22 @@ function guardarDatosAcademicos() {
 function mimeLabel(mimes: string[]): string {
     return mimes
         .map((m) => {
-            if (m === 'application/pdf') return 'PDF';
-            if (m === 'image/jpeg') return 'JPG';
-            if (m === 'image/png') return 'PNG';
-            if (m === 'image/webp') return 'WEBP';
+            if (m === 'application/pdf') {
+return 'PDF';
+}
+
+            if (m === 'image/jpeg') {
+return 'JPG';
+}
+
+            if (m === 'image/png') {
+return 'PNG';
+}
+
+            if (m === 'image/webp') {
+return 'WEBP';
+}
+
             return m;
         })
         .join(' · ');

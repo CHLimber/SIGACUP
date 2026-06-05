@@ -1,6 +1,18 @@
 <script setup lang="ts">
-import { Head, router, useForm } from '@inertiajs/vue3';
-import { ChevronLeft, ChevronRight, MoreHorizontal, Pencil, Power, Trash2, X } from 'lucide-vue-next';
+import { Head, router, useForm, usePage } from '@inertiajs/vue3';
+import {
+    AlertCircle,
+    CheckCircle2,
+    ChevronLeft,
+    ChevronRight,
+    Download,
+    MoreHorizontal,
+    Pencil,
+    Power,
+    Trash2,
+    Upload,
+    X,
+} from 'lucide-vue-next';
 import { computed, ref, watch } from 'vue';
 import {
     DropdownMenu,
@@ -77,9 +89,19 @@ const hayFiltros = computed(() => !!(filtroRol.value || filtroEstado.value || fi
 
 watch([filtroRol, filtroEstado, filtroGestionId], () => {
     const params: Record<string, string> = {};
-    if (filtroRol.value) params.rol = filtroRol.value;
-    if (filtroEstado.value) params.estado = filtroEstado.value;
-    if (filtroGestionId.value) params.gestion_id = filtroGestionId.value;
+
+    if (filtroRol.value) {
+params.rol = filtroRol.value;
+}
+
+    if (filtroEstado.value) {
+params.estado = filtroEstado.value;
+}
+
+    if (filtroGestionId.value) {
+params.gestion_id = filtroGestionId.value;
+}
+
     router.get('/administracion/usuarios', params, { preserveScroll: true, replace: true });
 });
 
@@ -91,27 +113,51 @@ function limpiarFiltros() {
 
 // ── Paginación ────────────────────────────────────────────────────────────────
 function irAPagina(page: number) {
-    if (page < 1 || page > props.usuarios.last_page) return;
+    if (page < 1 || page > props.usuarios.last_page) {
+return;
+}
+
     const params: Record<string, string | number> = { page };
-    if (filtroRol.value) params.rol = filtroRol.value;
-    if (filtroEstado.value) params.estado = filtroEstado.value;
-    if (filtroGestionId.value) params.gestion_id = filtroGestionId.value;
+
+    if (filtroRol.value) {
+params.rol = filtroRol.value;
+}
+
+    if (filtroEstado.value) {
+params.estado = filtroEstado.value;
+}
+
+    if (filtroGestionId.value) {
+params.gestion_id = filtroGestionId.value;
+}
+
     router.get('/administracion/usuarios', params, { preserveScroll: true, replace: true });
 }
 
 const paginas = computed<(number | '...')[]>(() => {
     const total = props.usuarios.last_page;
     const actual = props.usuarios.current_page;
+
     if (total <= 7) {
         return Array.from({ length: total }, (_, i) => i + 1);
     }
+
     const pages: (number | '...')[] = [1];
-    if (actual > 3) pages.push('...');
+
+    if (actual > 3) {
+pages.push('...');
+}
+
     for (let i = Math.max(2, actual - 1); i <= Math.min(total - 1, actual + 1); i++) {
         pages.push(i);
     }
-    if (actual < total - 2) pages.push('...');
+
+    if (actual < total - 2) {
+pages.push('...');
+}
+
     pages.push(total);
+
     return pages;
 });
 
@@ -167,7 +213,71 @@ function eliminar(u: UsuarioItem) {
     if (!confirm(`¿Eliminar al usuario «${u.name}»? Esta acción no se puede deshacer.`)) {
 return;
 }
+
     router.delete(`/administracion/usuarios/${u.id}`, { preserveScroll: true });
+}
+
+// ── Importación masiva CSV ────────────────────────────────────────────────────
+interface PreviewValido {
+    linea: number;
+    name: string;
+    username: string;
+    email: string;
+    role: string;
+    password_generada: boolean;
+}
+interface PreviewError {
+    linea: number;
+    datos: Record<string, unknown>;
+    errores: string[];
+}
+
+const page = usePage();
+const importAbierto = ref(false);
+const archivoInput = ref<HTMLInputElement | null>(null);
+const enviarCorreo = ref(false);
+
+const formArchivo = useForm<{ archivo: File | null }>({ archivo: null });
+
+const preview = computed<{ validos: PreviewValido[]; errores: PreviewError[] } | null>(
+    () => (page.props.flash as { import_preview?: { validos: PreviewValido[]; errores: PreviewError[] } } | undefined)?.import_preview ?? null,
+);
+
+function abrirImport() {
+    importAbierto.value = true;
+}
+
+function cerrarImport() {
+    importAbierto.value = false;
+    formArchivo.reset();
+    formArchivo.clearErrors();
+}
+
+function onArchivo(e: Event) {
+    const files = (e.target as HTMLInputElement).files;
+    formArchivo.archivo = files && files.length ? files[0] : null;
+}
+
+function subirPreview() {
+    if (!formArchivo.archivo) {
+return;
+}
+
+    formArchivo.post('/administracion/usuarios/importar/preview', { preserveScroll: true, preserveState: true });
+}
+
+function confirmarImport() {
+    router.post(
+        '/administracion/usuarios/importar',
+        { enviar_correo: enviarCorreo.value },
+        {
+            preserveScroll: true,
+            onSuccess: () => {
+                cerrarImport();
+                enviarCorreo.value = false;
+            },
+        },
+    );
 }
 </script>
 
@@ -183,14 +293,132 @@ return;
                     Cuentas del personal: asigná roles y controlá el acceso al sistema.
                 </p>
             </div>
-            <button
-                type="button"
-                class="mt-3 inline-flex items-center gap-2 rounded-md px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:brightness-110 sm:mt-0"
-                style="background-color: #c70e0a;"
-                @click="abrirNuevo"
-            >
-                + Nuevo Usuario
-            </button>
+            <div class="mt-3 flex items-center gap-2 sm:mt-0">
+                <button
+                    type="button"
+                    class="inline-flex items-center gap-2 rounded-md border border-[#073b75] px-4 py-2 text-sm font-semibold text-[#073b75] transition hover:bg-[#073b75]/5"
+                    @click="abrirImport"
+                >
+                    <Upload class="h-4 w-4" /> Importar CSV
+                </button>
+                <button
+                    type="button"
+                    class="inline-flex items-center gap-2 rounded-md px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:brightness-110"
+                    style="background-color: #c70e0a;"
+                    @click="abrirNuevo"
+                >
+                    + Nuevo Usuario
+                </button>
+            </div>
+        </div>
+
+        <!-- Panel de importación masiva -->
+        <div v-if="importAbierto" class="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
+            <div class="flex items-center justify-between px-5 py-3.5" style="background-color: #073b75;">
+                <h2 class="text-sm font-semibold uppercase tracking-wider text-white">Importar usuarios desde CSV</h2>
+                <button type="button" class="text-white/80 hover:text-white" @click="cerrarImport"><X class="h-4 w-4" /></button>
+            </div>
+            <div class="flex flex-col gap-4 p-6">
+                <p class="text-sm text-gray-600">
+                    Cargá un archivo CSV con las columnas <code class="rounded bg-gray-100 px-1 font-mono text-xs">name, username, email, role, password</code>.
+                    Los campos <strong>username</strong> y <strong>password</strong> son opcionales (se generan automáticamente).
+                    Los roles <strong>docente</strong> y <strong>estudiante</strong> no se permiten por esta vía.
+                </p>
+
+                <a
+                    href="/administracion/usuarios/plantilla"
+                    class="inline-flex w-fit items-center gap-2 text-sm font-medium text-[#073b75] hover:underline"
+                >
+                    <Download class="h-4 w-4" /> Descargar plantilla CSV
+                </a>
+
+                <div class="flex flex-wrap items-end gap-3">
+                    <div class="flex flex-col gap-1.5">
+                        <label class="text-xs font-semibold uppercase tracking-wider text-gray-500">Archivo CSV</label>
+                        <input
+                            ref="archivoInput"
+                            type="file"
+                            accept=".csv,text/csv"
+                            class="text-sm file:mr-3 file:rounded-md file:border-0 file:bg-[#073b75] file:px-3 file:py-1.5 file:text-white"
+                            @change="onArchivo"
+                        />
+                        <p v-if="formArchivo.errors.archivo" class="text-xs text-red-600">{{ formArchivo.errors.archivo }}</p>
+                    </div>
+                    <button
+                        type="button"
+                        :disabled="!formArchivo.archivo || formArchivo.processing"
+                        class="inline-flex items-center gap-2 rounded-md px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:brightness-110 disabled:opacity-50"
+                        style="background-color: #073b75;"
+                        @click="subirPreview"
+                    >
+                        {{ formArchivo.processing ? 'Analizando…' : 'Previsualizar' }}
+                    </button>
+                </div>
+
+                <!-- Resultado de la previsualización -->
+                <template v-if="preview">
+                    <div class="flex flex-wrap gap-4 text-sm">
+                        <span class="inline-flex items-center gap-1.5 font-medium text-green-700">
+                            <CheckCircle2 class="h-4 w-4" /> {{ preview.validos.length }} válido(s)
+                        </span>
+                        <span v-if="preview.errores.length" class="inline-flex items-center gap-1.5 font-medium text-red-600">
+                            <AlertCircle class="h-4 w-4" /> {{ preview.errores.length }} con errores
+                        </span>
+                    </div>
+
+                    <!-- Tabla válidos -->
+                    <div v-if="preview.validos.length" class="overflow-x-auto rounded-lg border border-gray-200">
+                        <table class="w-full text-sm">
+                            <thead class="bg-gray-50 text-left text-xs uppercase tracking-wider text-gray-500">
+                                <tr>
+                                    <th class="px-3 py-2">Línea</th>
+                                    <th class="px-3 py-2">Nombre</th>
+                                    <th class="px-3 py-2">Usuario</th>
+                                    <th class="px-3 py-2">Email</th>
+                                    <th class="px-3 py-2">Rol</th>
+                                    <th class="px-3 py-2">Contraseña</th>
+                                </tr>
+                            </thead>
+                            <tbody class="divide-y divide-gray-100">
+                                <tr v-for="v in preview.validos" :key="v.linea">
+                                    <td class="px-3 py-2 text-gray-400">{{ v.linea }}</td>
+                                    <td class="px-3 py-2 font-medium text-gray-900">{{ v.name }}</td>
+                                    <td class="px-3 py-2 text-gray-600">{{ v.username }}</td>
+                                    <td class="px-3 py-2 text-gray-600">{{ v.email }}</td>
+                                    <td class="px-3 py-2"><span class="rounded-full bg-slate-100 px-2 py-0.5 text-xs font-semibold text-slate-600">{{ v.role }}</span></td>
+                                    <td class="px-3 py-2 text-xs text-gray-400">{{ v.password_generada ? 'Autogenerada' : 'Definida' }}</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <!-- Errores -->
+                    <div v-if="preview.errores.length" class="rounded-lg border border-red-200 bg-red-50 p-3">
+                        <p class="mb-2 text-xs font-semibold uppercase tracking-wider text-red-700">Filas con errores (se omitirán)</p>
+                        <ul class="flex flex-col gap-1 text-xs text-red-700">
+                            <li v-for="er in preview.errores" :key="er.linea">
+                                <strong>Línea {{ er.linea }}:</strong> {{ er.errores.join(' ') }}
+                            </li>
+                        </ul>
+                    </div>
+
+                    <!-- Confirmación -->
+                    <div v-if="preview.validos.length" class="flex flex-wrap items-center justify-between gap-3 border-t border-gray-100 pt-4">
+                        <label class="inline-flex items-center gap-2 text-sm text-gray-600">
+                            <input v-model="enviarCorreo" type="checkbox" class="rounded border-gray-300 text-[#073b75] focus:ring-[#073b75]" />
+                            Enviar credenciales por correo a cada usuario
+                        </label>
+                        <button
+                            type="button"
+                            class="inline-flex items-center gap-2 rounded-md px-5 py-2 text-sm font-semibold text-white shadow-sm transition hover:brightness-110"
+                            style="background-color: #c70e0a;"
+                            @click="confirmarImport"
+                        >
+                            Importar {{ preview.validos.length }} usuario(s)
+                        </button>
+                    </div>
+                </template>
+            </div>
         </div>
 
         <!-- Tarjetas resumen -->

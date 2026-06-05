@@ -141,16 +141,12 @@ class Gestion2025_2InscripcionSeeder extends Seeder
         DB::table('pago')->whereIn('postulacion_id', $postIds)->delete();
         DB::table('postulacion')->where('gestion_id', $g2025_2)->delete();
 
-        // Candidatos estudiante (con requisitos, users, personas)
-        $candidatos = DB::table('candidato_estudiante')->whereIn('id', $candIds)->get(['id', 'user_id', 'persona_id']);
-        $estUserIds = $candidatos->pluck('user_id')->filter()->values()->all();
+        // Candidatos estudiante (con requisitos y personas; ya no tienen cuenta)
+        $candidatos = DB::table('candidato_estudiante')->whereIn('id', $candIds)->get(['id', 'persona_id']);
         $estPersonaIds = $candidatos->pluck('persona_id')->all();
 
         DB::table('requisito_estudiante')->whereIn('candidato_estudiante_id', $candIds)->delete();
         DB::table('candidato_estudiante')->whereIn('id', $candIds)->delete();
-        if ($estUserIds) {
-            DB::table('users')->whereIn('id', $estUserIds)->delete();
-        }
         DB::table('persona')->whereIn('id', $estPersonaIds)->delete();
 
         // Docentes de 2025-2 (via docente_grupo → grupos de esta gestión)
@@ -497,7 +493,6 @@ class Gestion2025_2InscripcionSeeder extends Seeder
             'estado' => $estado,
             'token_acceso' => bin2hex(random_bytes(32)),
             'motivo_rechazo' => $motivoRechazo,
-            'user_id' => null,   // sin cuenta hasta ser admitido
             'created_at' => $this->nowStr,
             'updated_at' => $this->nowStr,
         ]);

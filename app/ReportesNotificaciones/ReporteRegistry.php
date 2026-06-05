@@ -6,8 +6,10 @@ use App\ReportesNotificaciones\Reports\AbstractReport;
 use App\ReportesNotificaciones\Reports\CalificacionesReport;
 use App\ReportesNotificaciones\Reports\DocentesReport;
 use App\ReportesNotificaciones\Reports\EstudiantesReport;
+use App\ReportesNotificaciones\Reports\GruposReport;
 use App\ReportesNotificaciones\Reports\PagosReport;
 use App\ReportesNotificaciones\Reports\PostulacionesReport;
+use App\ReportesNotificaciones\Reports\RendimientoDocenteReport;
 
 /**
  * Catálogo de reportes disponibles. Para agregar un reporte nuevo basta con
@@ -19,6 +21,8 @@ class ReporteRegistry
     private array $reportes = [
         PostulacionesReport::class,
         EstudiantesReport::class,
+        GruposReport::class,
+        RendimientoDocenteReport::class,
         DocentesReport::class,
         PagosReport::class,
         CalificacionesReport::class,

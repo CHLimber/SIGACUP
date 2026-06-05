@@ -14,7 +14,6 @@ return new class extends Migration
             $table->string('estado', 30)->default('pendiente');
             $table->string('token_acceso', 64)->unique();
             $table->string('motivo_rechazo', 500)->nullable();
-            $table->foreignId('user_id')->nullable()->unique()->constrained('users')->nullOnDelete();
             $table->timestamps();
 
             $table->index('estado');

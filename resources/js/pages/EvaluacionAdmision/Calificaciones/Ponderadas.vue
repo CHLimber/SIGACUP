@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { Head, Link, router } from '@inertiajs/vue3';
-import { computed, ref } from 'vue';
 import { LayoutGrid, Search, Table2 } from 'lucide-vue-next';
+import { computed, ref } from 'vue';
 import { dashboard } from '@/routes';
 
 interface MateriaCol {
@@ -62,11 +62,13 @@ function cambiarGestion() {
 // Lista de grupos presentes (para el filtro), partiendo de los estudiantes cargados.
 const grupos = computed(() => {
     const set = new Set<string>();
+
     for (const e of props.estudiantes) {
         if (e.grupo && e.grupo !== '—') {
             e.grupo.split(', ').forEach((g) => set.add(g));
         }
     }
+
     return Array.from(set).sort();
 });
 
@@ -75,6 +77,7 @@ const estudiantesFiltrados = computed(() =>
         const coincideGrupo = !grupoFiltro.value || e.grupo.split(', ').includes(grupoFiltro.value);
         const coincideEstado = !estadoFiltro.value || e.estado === estadoFiltro.value;
         const coincideNombre = !busqueda.value || e.nombre.toLowerCase().includes(busqueda.value.toLowerCase());
+
         return coincideGrupo && coincideEstado && coincideNombre;
     }),
 );
@@ -85,6 +88,7 @@ const baseResumen = computed(() =>
     props.estudiantes.filter((e) => {
         const coincideGrupo = !grupoFiltro.value || e.grupo.split(', ').includes(grupoFiltro.value);
         const coincideNombre = !busqueda.value || e.nombre.toLowerCase().includes(busqueda.value.toLowerCase());
+
         return coincideGrupo && coincideNombre;
     }),
 );

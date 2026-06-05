@@ -14,6 +14,7 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -105,7 +106,19 @@ class GruposController extends Controller
         $nombres = $this->generarNombres($n);
         $materias = DB::table('materia')->pluck('codigo')->all();
 
-        DB::transaction(function () use ($gestion, $postulaciones, $nombres, $materias, $capacidadMax) {
+        // Postulantes que caerán en cada paralelo (distribución round-robin), para
+        // elegir aulas con capacidad suficiente al asignar slots automáticamente.
+        $conteoPorNombre = array_fill_keys($nombres, 0);
+        foreach ($postulaciones as $i => $postulacion) {
+            $conteoPorNombre[$nombres[$i % count($nombres)]]++;
+        }
+
+        $aulas = Aula::orderBy('capacidad')->orderBy('id')->get();
+        $horarios = Horario::orderBy('hora_inicio')->orderBy('id')->get();
+
+        $sinAsignar = 0;
+
+        DB::transaction(function () use ($gestion, $postulaciones, $nombres, $materias, $capacidadMax, $conteoPorNombre, $aulas, $horarios, &$sinAsignar) {
             $existingIds = Grupo::where('gestion_id', $gestion->id)->pluck('id');
             if ($existingIds->isNotEmpty()) {
                 DB::table('asignacion_grupo')->whereIn('grupo_id', $existingIds)->delete();
@@ -113,6 +126,7 @@ class GruposController extends Controller
             }
 
             $gruposPorNombre = [];
+            $gruposCreados = [];
             foreach ($nombres as $nombre) {
                 $gruposPorNombre[$nombre] = [];
                 foreach ($materias as $codigo) {
@@ -125,6 +139,7 @@ class GruposController extends Controller
                         'capacidad_max' => $capacidadMax,
                     ]);
                     $gruposPorNombre[$nombre][] = $grupo->id;
+                    $gruposCreados[] = ['id' => $grupo->id, 'nombre' => $nombre];
                 }
             }
 
@@ -142,12 +157,97 @@ class GruposController extends Controller
                 }
             }
             DB::table('asignacion_grupo')->insert($inserts);
+
+            $sinAsignar = $this->asignarAulasHorarios($gruposCreados, $conteoPorNombre, $capacidadMax, $aulas, $horarios);
         });
 
-        return back()->with('flash', [
-            'type' => 'success',
-            'message' => "Se generaron {$n} grupos y se distribuyeron {$postulaciones->count()} postulantes equitativamente.",
-        ]);
+        $mensaje = "Se generaron {$n} grupos y se distribuyeron {$postulaciones->count()} postulantes equitativamente.";
+
+        if ($sinAsignar > 0) {
+            $mensaje .= " {$sinAsignar} grupo(s) quedaron sin aula/horario por falta de disponibilidad; asígnalos manualmente en Configurar.";
+
+            return back()->with('flash', ['type' => 'warning', 'message' => $mensaje]);
+        }
+
+        $mensaje .= ' Se asignaron aulas y horarios automáticamente, sin choques.';
+
+        return back()->with('flash', ['type' => 'success', 'message' => $mensaje]);
+    }
+
+    /**
+     * Asigna aula y horario a cada grupo recién creado evitando choques:
+     * dentro de un mismo paralelo (nombre) cada materia recibe un horario
+     * distinto —el postulante las cursa todas— y ningún par aula×horario se
+     * repite entre grupos (un aula no puede usarse dos veces a la misma hora).
+     *
+     * @param  list<array{id:int, nombre:string}>  $grupos
+     * @param  array<string, int>  $conteoPorNombre  postulantes por paralelo
+     * @param  Collection<int, Aula>  $aulas  ordenadas por capacidad ascendente (best-fit)
+     * @param  Collection<int, Horario>  $horarios
+     * @return int cantidad de grupos que quedaron sin asignar
+     */
+    private function asignarAulasHorarios(array $grupos, array $conteoPorNombre, int $capacidadMax, Collection $aulas, Collection $horarios): int
+    {
+        if ($aulas->isEmpty() || $horarios->isEmpty()) {
+            return count($grupos);
+        }
+
+        $ocupadas = [];          // [horario_id][aula_id] = true (reserva física del aula)
+        $horariosParalelo = [];  // [nombre][horario_id] = true (hora ya tomada por el paralelo)
+        $sinAsignar = 0;
+
+        foreach ($grupos as $g) {
+            $nombre = $g['nombre'];
+            $necesidad = $conteoPorNombre[$nombre] ?? $capacidadMax;
+
+            // Primero un aula con capacidad suficiente; si no hay, se relaja la capacidad.
+            $slot = $this->buscarSlotLibre($nombre, $necesidad, $ocupadas, $horariosParalelo, $aulas, $horarios, true)
+                ?? $this->buscarSlotLibre($nombre, $necesidad, $ocupadas, $horariosParalelo, $aulas, $horarios, false);
+
+            if ($slot === null) {
+                $sinAsignar++;
+
+                continue;
+            }
+
+            [$horarioId, $aulaId] = $slot;
+            $ocupadas[$horarioId][$aulaId] = true;
+            $horariosParalelo[$nombre][$horarioId] = true;
+
+            Grupo::where('id', $g['id'])->update(['horario_id' => $horarioId, 'aula_id' => $aulaId]);
+        }
+
+        return $sinAsignar;
+    }
+
+    /**
+     * Busca el primer par (horario, aula) libre para un grupo del paralelo $nombre.
+     *
+     * @param  array<int, array<int, bool>>  $ocupadas
+     * @param  array<string, array<int, bool>>  $horariosParalelo
+     * @param  Collection<int, Aula>  $aulas
+     * @param  Collection<int, Horario>  $horarios
+     * @return array{0:int, 1:int}|null [horario_id, aula_id] o null si no hay slot
+     */
+    private function buscarSlotLibre(string $nombre, int $necesidad, array $ocupadas, array $horariosParalelo, Collection $aulas, Collection $horarios, bool $requiereCapacidad): ?array
+    {
+        foreach ($horarios as $horario) {
+            if (isset($horariosParalelo[$nombre][$horario->id])) {
+                continue;
+            }
+            foreach ($aulas as $aula) {
+                if (isset($ocupadas[$horario->id][$aula->id])) {
+                    continue;
+                }
+                if ($requiereCapacidad && $aula->capacidad < $necesidad) {
+                    continue;
+                }
+
+                return [$horario->id, $aula->id];
+            }
+        }
+
+        return null;
     }
 
     public function configurar(Gestion $gestion, string $nombre): Response
@@ -213,29 +313,21 @@ class GruposController extends Controller
             'asignaciones.*.aula_id' => 'nullable|integer|exists:aula,id',
         ]);
 
+        // Los grupos de este paralelo se reescriben por completo, así que no chocan
+        // contra sí mismos: solo deben revisarse contra el resto de la gestión.
+        $idsLote = array_column($data['asignaciones'], 'grupo_id');
+
+        $this->verificarConflictosAula($data['asignaciones'], $gestion, $nombre, $idsLote);
+
         DB::transaction(function () use ($data, $gestion, $nombre) {
             foreach ($data['asignaciones'] as $asig) {
-                $grupo = Grupo::where('id', $asig['grupo_id'])
+                Grupo::where('id', $asig['grupo_id'])
                     ->where('gestion_id', $gestion->id)
                     ->where('nombre', $nombre)
-                    ->firstOrFail();
-
-                if ($asig['aula_id'] && $asig['horario_id']) {
-                    $conflicto = Grupo::where('gestion_id', $gestion->id)
-                        ->where('aula_id', $asig['aula_id'])
-                        ->where('horario_id', $asig['horario_id'])
-                        ->where('id', '!=', $grupo->id)
-                        ->first();
-
-                    if ($conflicto) {
-                        abort(422, "Conflicto: el aula seleccionada ya está ocupada en ese horario por el grupo {$conflicto->nombre} ({$conflicto->codigo_materia}).");
-                    }
-                }
-
-                $grupo->update([
-                    'horario_id' => $asig['horario_id'] ?: null,
-                    'aula_id' => $asig['aula_id'] ?: null,
-                ]);
+                    ->update([
+                        'horario_id' => $asig['horario_id'] ?: null,
+                        'aula_id' => $asig['aula_id'] ?: null,
+                    ]);
             }
         });
 
@@ -243,6 +335,49 @@ class GruposController extends Controller
             'type' => 'success',
             'message' => "Grupo {$nombre} actualizado correctamente.",
         ]);
+    }
+
+    /**
+     * Verifica que ninguna asignación reserve un aula ya ocupada en ese horario,
+     * ni dentro del propio envío ni por otros grupos de la gestión. Lanza una
+     * ValidationException (que Inertia entrega al `onError` del frontend) en vez
+     * de abortar con una excepción HTTP cruda.
+     *
+     * @param  list<array{grupo_id:int, horario_id:int|null, aula_id:int|null}>  $asignaciones
+     * @param  int[]  $idsLote  ids de los grupos que se están reescribiendo
+     */
+    private function verificarConflictosAula(array $asignaciones, Gestion $gestion, string $nombre, array $idsLote): void
+    {
+        $vistos = [];
+
+        foreach ($asignaciones as $asig) {
+            if (! $asig['aula_id'] || ! $asig['horario_id']) {
+                continue;
+            }
+
+            $clave = $asig['aula_id'].'-'.$asig['horario_id'];
+
+            // Choque dentro del mismo paralelo (dos materias en la misma aula y hora).
+            if (isset($vistos[$clave])) {
+                throw ValidationException::withMessages([
+                    'asignaciones' => "Conflicto: dos materias del grupo {$nombre} comparten la misma aula y horario. Cada materia debe ir en una franja distinta.",
+                ]);
+            }
+            $vistos[$clave] = true;
+
+            // Choque con un grupo de otro paralelo (o gestión) que ya usa ese aula y hora.
+            $conflicto = Grupo::where('gestion_id', $gestion->id)
+                ->where('aula_id', $asig['aula_id'])
+                ->where('horario_id', $asig['horario_id'])
+                ->whereNotIn('id', $idsLote)
+                ->first();
+
+            if ($conflicto) {
+                throw ValidationException::withMessages([
+                    'asignaciones' => "Conflicto: el aula seleccionada ya está ocupada en ese horario por el grupo {$conflicto->nombre} ({$conflicto->codigo_materia}).",
+                ]);
+            }
+        }
     }
 
     // ── Asignación de docentes ──────────────────────────────────────────────

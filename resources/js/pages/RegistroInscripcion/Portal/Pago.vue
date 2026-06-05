@@ -1,8 +1,9 @@
 <script setup lang="ts">
 import { Head } from '@inertiajs/vue3';
-import { loadStripe, type Stripe, type StripeElements, type StripePaymentElement } from '@stripe/stripe-js';
-import { onMounted, ref } from 'vue';
+import { loadStripe    } from '@stripe/stripe-js';
+import type {Stripe, StripeElements, StripePaymentElement} from '@stripe/stripe-js';
 import { CheckCircle } from 'lucide-vue-next';
+import { onMounted, ref } from 'vue';
 
 interface CandidatoData {
     nombre_completo: string;
@@ -36,8 +37,10 @@ const errorMsg = ref<string | null>(null);
 onMounted(async () => {
     try {
         stripe = await loadStripe(props.stripeKey);
+
         if (! stripe) {
             errorMsg.value = 'No se pudo cargar el procesador de pagos.';
+
             return;
         }
 
@@ -54,6 +57,7 @@ onMounted(async () => {
         if (! resp.ok) {
             const body = await resp.json().catch(() => ({}));
             errorMsg.value = body.error || 'No se pudo inicializar el pago.';
+
             return;
         }
 
@@ -86,7 +90,10 @@ onMounted(async () => {
 });
 
 async function pagar() {
-    if (! stripe || ! elements) return;
+    if (! stripe || ! elements) {
+return;
+}
+
     procesando.value = true;
     errorMsg.value = null;
 
@@ -98,6 +105,7 @@ async function pagar() {
     if (error) {
         errorMsg.value = error.message ?? 'No se pudo completar el pago.';
         procesando.value = false;
+
         return;
     }
 
@@ -120,6 +128,7 @@ async function pagar() {
             if (! resp.ok) {
                 errorMsg.value = data.error || 'El pago se realizó pero falló la confirmación. Contacta a coordinación.';
                 procesando.value = false;
+
                 return;
             }
 
@@ -163,7 +172,7 @@ function fmtBs(v: number): string {
                         <CheckCircle class="h-6 w-6" />
                         <div>
                             <p class="text-sm font-semibold uppercase tracking-wider opacity-90">Solicitud aprobada</p>
-                            <p class="text-xs opacity-80">Completa el pago para recibir tus credenciales de acceso.</p>
+                            <p class="text-xs opacity-80">Completa el pago para confirmar tu matrícula al CUP.</p>
                         </div>
                     </div>
                 </div>

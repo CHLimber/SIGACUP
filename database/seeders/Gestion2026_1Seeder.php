@@ -8,20 +8,23 @@ use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
 
 /**
- * Siembra la gestión 2025-2 completa (~1 150 candidatos).
+ * Siembra la gestión 2026-1 completa (~1 000 candidatos) como GESTIÓN ACTIVA
+ * (estado «admision», no cerrada), con resultados publicados — permite la
+ * consulta pública por CI y comparativas entre gestiones.
  *
- * La gestión y sus parámetros base los crea CatalogosSeeder; este seeder
- * los busca por (anio=2025, semestre=2) y actualiza los cupos a 120 por
- * carrera, luego agrega docentes, grupos y estudiantes.
+ * A diferencia de seeders anteriores (cupo uniforme), aquí los cupos varían por
+ * carrera para reflejar la realidad del brief (Sistemas más grande, Robótica
+ * limitada por laboratorios): 200 / 180 / 150 / 120 = 650 admitidos de 1 000.
  *
  * Rangos reservados para no colisionar con seeders anteriores:
- *   Seeder 2024-2 → doc CI 7 000 001-016  | est CI 8 000 001+  | FAC-2024-*
- *   Seeder 2025-1 → doc CI 7 500 001-016  | est CI 9 000 001+  | FAC-2025-*
- *   Seeder 2025-2 → doc CI 7 600 001-016  | est CI 10 000 001+ | FAC-20252-*
+ *   Seeder 2024-2   → doc CI 7 000 001-016  | est CI 8 000 001+  | FAC-2024-*
+ *   Seeder 2025-1   → doc CI 7 500 001-016  | est CI 9 000 001+  | FAC-2025-*
+ *   Seeder 2025-2   → doc CI 7 600 001-016  | est CI 10 000 001+ | FAC-20252-*
+ *   Seeder 2026-1   → doc CI 7 700 001-016  | est CI 11 000 001+ | FAC-20261-*
  *
- * Ejecución:  php artisan db:seed --class=Gestion2025_2Seeder
+ * Ejecución:  php artisan db:seed --class=Gestion2026_1Seeder
  */
-class Gestion2025_2Seeder extends Seeder
+class Gestion2026_1Seeder extends Seeder
 {
     // ── Pools de datos ───────────────────────────────────────────────────────
 
@@ -81,13 +84,16 @@ class Gestion2025_2Seeder extends Seeder
 
     private const TIPOS_COLEGIO = ['publica', 'privada', 'convenio'];
 
+    /** Cupos por carrera (en orden de id). Suma = 650 admitidos. */
+    private const CUPOS = [200, 180, 150, 120];
+
     // ── Estado interno ───────────────────────────────────────────────────────
 
-    private int $ciCounter = 10_000_001;
+    private int $ciCounter = 11_000_001;
 
-    private int $telCounter = 78_000_001;
+    private int $telCounter = 79_000_001;
 
-    private int $factura = 300_001;
+    private int $factura = 400_001;
 
     private int $estUser = 1;
 
@@ -104,8 +110,8 @@ class Gestion2025_2Seeder extends Seeder
 
         DB::transaction(function (): void {
             $gestionId = $this->obtenerGestion();
-            $this->actualizarCupos($gestionId);
             $carreraIds = DB::table('carrera')->orderBy('id')->pluck('id')->all();
+            $this->actualizarCupos($gestionId, $carreraIds);
             $aulaIds = $this->obtenerOCrearAulas();
             $horarioIds = DB::table('horario')->orderBy('id')->pluck('id')->all();
             $grupoIds = $this->crearGrupos($gestionId, $horarioIds, $aulaIds);
@@ -120,25 +126,25 @@ class Gestion2025_2Seeder extends Seeder
     private function obtenerGestion(): int
     {
         $id = DB::table('gestion')
-            ->where('anio', 2025)
-            ->where('semestre', 2)
+            ->where('anio', 2026)
+            ->where('semestre', 1)
             ->value('id');
 
-        if ($id) {
-            return $id;
+        if (! $id) {
+            $id = DB::table('gestion')->insertGetId([
+                'anio' => 2026,
+                'semestre' => 1,
+                'estado' => 'admision',
+                'fecha_inicio_inscripcion' => '2026-01-12',
+                'fecha_fin_inscripcion' => '2026-01-30',
+                'fecha_inicio_cursado' => '2026-02-02',
+                'fecha_fin_cursado' => '2026-02-27',
+                'created_at' => $this->nowStr,
+                'updated_at' => $this->nowStr,
+            ]);
+        } else {
+            DB::table('gestion')->where('id', $id)->update(['estado' => 'admision', 'updated_at' => $this->nowStr]);
         }
-
-        $id = DB::table('gestion')->insertGetId([
-            'anio' => 2025,
-            'semestre' => 2,
-            'estado' => 'cerrada',
-            'fecha_inicio_inscripcion' => '2025-07-14',
-            'fecha_fin_inscripcion' => '2025-07-31',
-            'fecha_inicio_cursado' => '2025-08-04',
-            'fecha_fin_cursado' => '2025-11-28',
-            'created_at' => $this->nowStr,
-            'updated_at' => $this->nowStr,
-        ]);
 
         $params = [
             'monto_matricula_bs' => '800', 'capacidad_max_grupo' => '70',
@@ -158,16 +164,18 @@ class Gestion2025_2Seeder extends Seeder
 
     // ── Cupos ────────────────────────────────────────────────────────────────
 
-    private function actualizarCupos(int $gestionId): void
+    private function actualizarCupos(int $gestionId, array $carreraIds): void
     {
-        foreach (DB::table('carrera')->pluck('id') as $cid) {
+        foreach ($carreraIds as $idx => $cid) {
+            $cupo = self::CUPOS[$idx] ?? 120;
+
             if (DB::table('cupo_carrera')->where('gestion_id', $gestionId)->where('carrera_id', $cid)->exists()) {
                 DB::table('cupo_carrera')
                     ->where('gestion_id', $gestionId)->where('carrera_id', $cid)
-                    ->update(['cupo_max' => 120, 'updated_at' => $this->nowStr]);
+                    ->update(['cupo_max' => $cupo, 'updated_at' => $this->nowStr]);
             } else {
                 DB::table('cupo_carrera')->insert([
-                    'carrera_id' => $cid, 'gestion_id' => $gestionId, 'cupo_max' => 120,
+                    'carrera_id' => $cid, 'gestion_id' => $gestionId, 'cupo_max' => $cupo,
                     'created_at' => $this->nowStr, 'updated_at' => $this->nowStr,
                 ]);
             }
@@ -202,7 +210,7 @@ class Gestion2025_2Seeder extends Seeder
     /** @return array<string, list<int>> */
     private function crearGrupos(int $gestionId, array $horarioIds, array $aulaIds): array
     {
-        $letras = ['A', 'B', 'C', 'D', 'E', 'F', 'G'];
+        $letras = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J'];
         $grupos = [];
         $aIdx = 0;
         $hIdx = 0;
@@ -231,7 +239,7 @@ class Gestion2025_2Seeder extends Seeder
     // ── Docentes ─────────────────────────────────────────────────────────────
 
     /**
-     * 16 docentes nuevos para 2025-2 (CI 7 600 001–016, username doc252_01…16).
+     * 16 docentes nuevos para 2026-1 (CI 7 700 001–016, username doc261_01…16).
      *
      * @return array<string, list<int>>
      */
@@ -239,28 +247,28 @@ class Gestion2025_2Seeder extends Seeder
     {
         $defs = [
             // LIN001
-            ['Juana',     'Soruco Ferrufino',  'F', 7_600_001, 'Licenciada en Lingüística',                9, false, true,  'LIN001'],
-            ['Cristóbal', 'Landivar Becerra',  'M', 7_600_002, 'Magíster en Lingüística y Literatura',   18, true,  true,  'LIN001'],
-            ['Milagros',  'Arispe Justiniano', 'F', 7_600_003, 'Licenciada en Idiomas',                    6, true,  false, 'LIN001'],
-            ['Freddy',    'Villarroel Ortiz',  'M', 7_600_004, 'Licenciado en Letras',                     4, false, false, 'LIN001'],
+            ['Patricia',  'Soruco Antezana',   'F', 7_700_001, 'Magíster en Lingüística Aplicada',        12, true,  true,  'LIN001'],
+            ['Gonzalo',   'Ferrufino Becerra', 'M', 7_700_002, 'Licenciado en Idiomas',                    7, true,  false, 'LIN001'],
+            ['Lucía',     'Landivar Soria',    'F', 7_700_003, 'Magíster en Literatura',                  10, true,  true,  'LIN001'],
+            ['Marco',     'Villarroel Tola',   'M', 7_700_004, 'Licenciado en Comunicación',               5, false, false, 'LIN001'],
             // MAT001
-            ['Nataly',    'Cuellar Terán',     'F', 7_600_005, 'Magíster en Matemáticas Aplicadas',       14, true,  true,  'MAT001'],
-            ['Rubén',     'Nogales Vásquez',   'M', 7_600_006, 'Ingeniero en Sistemas',                    7, false, false, 'MAT001'],
-            ['Susana',    'Zeballos Campos',   'F', 7_600_007, 'Licenciada en Matemáticas',                8, true,  false, 'MAT001'],
-            ['Ernesto',   'Paniagua Ríos',     'M', 7_600_008, 'Magíster en Investigación Operativa',     16, true,  true,  'MAT001'],
+            ['Elena',     'Cuellar Vega',      'F', 7_700_005, 'Magíster en Matemáticas',                 16, true,  true,  'MAT001'],
+            ['Andrés',    'Nogales Castillo',  'M', 7_700_006, 'Ingeniero Matemático',                     9, true,  false, 'MAT001'],
+            ['Verónica',  'Zeballos Illanes',  'F', 7_700_007, 'Licenciada en Matemáticas',                6, false, false, 'MAT001'],
+            ['Rodrigo',   'Paniagua Quiroga',  'M', 7_700_008, 'Magíster en Estadística',                 14, true,  true,  'MAT001'],
             // INF001
-            ['Gonzalo',   'Guzmán Castillo',   'M', 7_600_009, 'Magíster en Ciencias de la Computación', 13, true,  true,  'INF001'],
-            ['Vanessa',   'Ibáñez Molina',     'F', 7_600_010, 'Ingeniera Informática',                    9, false, false, 'INF001'],
-            ['Roly',      'Menacho Peñaranda', 'M', 7_600_011, 'Ingeniero de Sistemas',                    5, true,  false, 'INF001'],
-            ['Nathaly',   'Balcázar Cabrera',  'F', 7_600_012, 'Licenciada en Informática',                6, false, false, 'INF001'],
+            ['Sergio',    'Guzmán Ponce',      'M', 7_700_009, 'Magíster en Ingeniería de Software',      15, true,  true,  'INF001'],
+            ['Karina',    'Ibáñez Arancibia',  'F', 7_700_010, 'Ingeniera Informática',                    8, true,  false, 'INF001'],
+            ['Fabio',     'Justiniano Bernal', 'M', 7_700_011, 'Ingeniero de Sistemas',                    6, false, false, 'INF001'],
+            ['Daniela',   'Arispe Carvajal',   'F', 7_700_012, 'Magíster en Ciencia de Datos',            11, true,  true,  'INF001'],
             // FIS001
-            ['Mauricio',  'Antezana Soria',    'M', 7_600_013, 'Magíster en Física Nuclear',              15, true,  true,  'FIS001'],
-            ['Lissette',  'Urquieta Silva',    'F', 7_600_014, 'Licenciada en Física',                     8, false, false, 'FIS001'],
-            ['Darwin',    'Rivero Lara',       'M', 7_600_015, 'Ingeniero en Electrónica',                 6, true,  false, 'FIS001'],
-            ['Daniela',   'Mercado Pacheco',   'F', 7_600_016, 'Magíster en Astrofísica',                 11, true,  true,  'FIS001'],
+            ['Hugo',      'Soruco Delgado',    'M', 7_700_013, 'Magíster en Física',                      13, true,  true,  'FIS001'],
+            ['Brenda',    'Becerra Espinoza',  'F', 7_700_014, 'Licenciada en Física',                     7, false, false, 'FIS001'],
+            ['Iván',      'Landivar Fuentes',  'M', 7_700_015, 'Ingeniero en Electrónica',                 5, true,  false, 'FIS001'],
+            ['Gabriela',  'Villarroel Gonzales', 'F', 7_700_016, 'Magíster en Física Aplicada',            10, true,  true,  'FIS001'],
         ];
 
-        $hashPwd = Hash::make('Docente2025B!');
+        $hashPwd = Hash::make('Docente2026A!');
         $resultado = [];
 
         foreach ($defs as $n => [$nombres, $apellido, $sexo, $ci, $titulo, $exp, $diplomado, $maestria, $materia]) {
@@ -270,9 +278,9 @@ class Gestion2025_2Seeder extends Seeder
                 'nombres' => $nombres,
                 'fecha_nacimiento' => $this->fecha(1965, 1992),
                 'sexo' => $sexo,
-                'telefono' => '7'.str_pad((string) (4_000_001 + $n), 7, '0', STR_PAD_LEFT),
-                'email' => 'doc2025b.persona'.str_pad((string) ($n + 1), 2, '0', STR_PAD_LEFT).'@gmail.com',
-                'direccion' => 'Av. Universitaria Norte #'.(400 + $n * 5),
+                'telefono' => '7'.str_pad((string) (5_000_001 + $n), 7, '0', STR_PAD_LEFT),
+                'email' => 'doc2026a.persona'.str_pad((string) ($n + 1), 2, '0', STR_PAD_LEFT).'@gmail.com',
+                'direccion' => 'Av. Universitaria Sur #'.(400 + $n * 5),
                 'created_at' => $this->nowStr,
                 'updated_at' => $this->nowStr,
             ]);
@@ -298,8 +306,8 @@ class Gestion2025_2Seeder extends Seeder
             $userId = DB::table('users')->insertGetId([
                 'persona_id' => $personaId,
                 'name' => "{$nombres} {$apellido}",
-                'username' => "doc252_{$num}",
-                'email' => "doc252_{$num}@ficct.edu.bo",
+                'username' => "doc261_{$num}",
+                'email' => "doc261_{$num}@ficct.edu.bo",
                 'email_verified_at' => $this->nowStr,
                 'password' => $hashPwd,
                 'role' => 'docente',
@@ -334,7 +342,8 @@ class Gestion2025_2Seeder extends Seeder
 
     private function asignarDocentesGrupos(array $grupoIds, array $docenteIds): void
     {
-        $dist = [2, 2, 2, 1];
+        // 10 grupos por materia repartidos entre 4 docentes.
+        $dist = [3, 3, 2, 2];
 
         foreach ($this->materiasCache as $mat) {
             $grupos = $grupoIds[$mat] ?? [];
@@ -358,16 +367,16 @@ class Gestion2025_2Seeder extends Seeder
     // ── Estudiantes ──────────────────────────────────────────────────────────
 
     /**
-     * Distribución total: 1 150 candidatos — proceso completo hasta resultado final.
-     *   480 admitidos    (120 × 4 carreras) — con notas, pago y asignación a grupos
-     *   670 no_admitidos — pagaron y rindieron el CUP, repartidos en tres motivos:
-     *       200 reprobados (todas las materias < mínima)
-     *       135 reprobados por una sola materia (buen promedio, una materia < 60)
-     *       335 sin cupo   (todas las materias ≥ 60, pero cupos llenos)
+     * 1 000 candidatos — proceso completo hasta resultado final.
+     *   650 admitidos    (200+180+150+120 por carrera) — notas, pago y grupos
+     *   350 no_admitidos — pagaron y rindieron, repartidos en tres motivos:
+     *       150 reprobados (todas las materias < mínima)
+     *       100 reprobados por una sola materia (buen promedio, una materia < 60)
+     *       100 sin cupo   (todas las materias ≥ 60, pero cupos llenos)
      */
     private function crearEstudiantes(int $gestionId, array $carreraIds, array $grupoIds): void
     {
-        $hashPwd = Hash::make('Estudiante2025B!');
+        $hashPwd = Hash::make('Estudiante2026A!');
         $rrGrupo = array_fill_keys($this->materiasCache, 0);
 
         $nextGrupo = function (string $mat) use (&$rrGrupo, $grupoIds): int {
@@ -377,48 +386,46 @@ class Gestion2025_2Seeder extends Seeder
             return $grupoIds[$mat][$idx];
         };
 
-        // ── 480 ADMITIDOS (120 por carrera) ───────────────────────────
-        for ($i = 0; $i < 480; $i++) {
-            $promedio = round(98 - ($i / 479) * 36 + mt_rand(-3, 3), 2);
-            $promedio = max(61.0, min(100.0, $promedio));
-            $c1Idx = (int) ($i / 120);
-            $carrera1Id = $carreraIds[$c1Idx];
-            $carrera2Id = $carreraIds[($c1Idx + 1) % 4];
+        // ── 650 ADMITIDOS (por cupo de carrera) ───────────────────────
+        $totalAdmitidos = array_sum(self::CUPOS);
+        $i = 0;
+        foreach ($carreraIds as $cIdx => $carrera1Id) {
+            $cupo = self::CUPOS[$cIdx] ?? 120;
+            $carrera2Id = $carreraIds[($cIdx + 1) % count($carreraIds)];
 
-            $postId = $this->crearEstudianteCompleto(
-                $gestionId, $hashPwd,
-                'pagado', 'pagado', 'completado', 'admitido',
-                $promedio, $carrera1Id, $carrera2Id, $carrera1Id,
-                true, true, 'aprobado', true, 65, 100,
-            );
+            for ($k = 0; $k < $cupo; $k++, $i++) {
+                $promedio = round(98 - ($i / max(1, $totalAdmitidos - 1)) * 36 + mt_rand(-3, 3), 2);
+                $promedio = max(61.0, min(100.0, $promedio));
 
-            foreach ($this->materiasCache as $mat) {
-                DB::table('asignacion_grupo')->insert([
-                    'postulacion_id' => $postId,
-                    'grupo_id' => $nextGrupo($mat),
-                    'created_at' => $this->nowStr,
-                    'updated_at' => $this->nowStr,
-                ]);
+                $postId = $this->crearEstudianteCompleto(
+                    $gestionId, $hashPwd,
+                    'pagado', 'pagado', 'completado', 'admitido',
+                    $promedio, $carrera1Id, $carrera2Id, $carrera1Id,
+                    true, true, 'aprobado', true, 65, 100,
+                );
+
+                foreach ($this->materiasCache as $mat) {
+                    DB::table('asignacion_grupo')->insert([
+                        'postulacion_id' => $postId,
+                        'grupo_id' => $nextGrupo($mat),
+                        'created_at' => $this->nowStr,
+                        'updated_at' => $this->nowStr,
+                    ]);
+                }
             }
         }
 
-        // ── 670 NO ADMITIDOS ──────────────────────────────────────────
-        // Tres motivos distintos, para ilustrar las reglas de admisión:
-        //   200 reprobados      → todas las materias por debajo de la mínima.
-        //   135 reprob. materia → buen promedio, pero UNA materia < 60 (la regla
-        //                          los reprueba aunque el promedio alcance).
-        //   335 sin cupo        → todas las materias ≥ 60, pero los cupos ya
-        //                          estaban llenos cuando llegó su turno.
-        for ($i = 0; $i < 670; $i++) {
+        // ── 350 NO ADMITIDOS ──────────────────────────────────────────
+        for ($j = 0; $j < 350; $j++) {
             $unaMateriaReprobada = false;
 
-            if ($i < 200) {
+            if ($j < 150) {
                 // Reprobados totales: notas 10–59 en todas las materias.
-                $promedio = round(10 + ($i / 199) * 49 + mt_rand(-2, 2), 2);
+                $promedio = round(10 + ($j / 149) * 49 + mt_rand(-2, 2), 2);
                 $promedio = max(10.0, min(59.0, $promedio));
                 $notaMin = 10;
                 $notaMax = 59;
-            } elseif ($i < 335) {
+            } elseif ($j < 250) {
                 // Reprobados por una sola materia: 3 materias en 65–90 y una < 60.
                 $promedio = round(66 + mt_rand(-3, 7), 2);
                 $promedio = max(60.0, min(78.0, $promedio));
@@ -427,8 +434,8 @@ class Gestion2025_2Seeder extends Seeder
                 $unaMateriaReprobada = true;
             } else {
                 // Sin cupo: notas 60–76 (aprobaron, pero no había lugar).
-                $j = $i - 335;
-                $promedio = round(60 + ($j / 334) * 15 + mt_rand(-1, 1), 2);
+                $jj = $j - 250;
+                $promedio = round(60 + ($jj / 99) * 15 + mt_rand(-1, 1), 2);
                 $promedio = max(60.0, min(76.0, $promedio));
                 $notaMin = 60;
                 $notaMax = 76;
@@ -437,7 +444,7 @@ class Gestion2025_2Seeder extends Seeder
             $this->crearEstudianteCompleto(
                 $gestionId, $hashPwd,
                 'pagado', 'pagado', 'completado', 'no_admitido',
-                $promedio, $carreraIds[$i % 4], $carreraIds[($i + 2) % 4], null,
+                $promedio, $carreraIds[$j % 4], $carreraIds[($j + 2) % 4], null,
                 false, true, 'aprobado', true, $notaMin, $notaMax,
                 unaMateriaReprobada: $unaMateriaReprobada,
             );
@@ -482,10 +489,10 @@ class Gestion2025_2Seeder extends Seeder
             'ci' => (string) $seq,
             'apellido' => $apellido,
             'nombres' => $nombres,
-            'fecha_nacimiento' => $this->fecha(1998, 2008),
+            'fecha_nacimiento' => $this->fecha(1999, 2009),
             'sexo' => $sexo,
             'telefono' => (string) $this->telCounter++,
-            'email' => "cand252_{$seq}@gmail.com",
+            'email' => "cand261_{$seq}@gmail.com",
             'direccion' => "{$calle} #{$num}",
             'created_at' => $this->nowStr,
             'updated_at' => $this->nowStr,
@@ -509,7 +516,7 @@ class Gestion2025_2Seeder extends Seeder
                 'gestion_id' => $gestionId,
                 'carrera1_id' => $carrera1Id,
                 'carrera2_id' => $carrera2Id,
-                'anio_egreso' => 2019 + ($seq % 7),
+                'anio_egreso' => 2020 + ($seq % 7),
                 'unidad_educativa' => self::UNIDADES[$seq % count(self::UNIDADES)],
                 'tipo_colegio' => self::TIPOS_COLEGIO[$seq % count(self::TIPOS_COLEGIO)],
                 'estado_pago' => $estadoPago,
@@ -592,7 +599,7 @@ class Gestion2025_2Seeder extends Seeder
     private function insertarPago(int $postulacionId): void
     {
         $num = str_pad((string) $this->factura++, 6, '0', STR_PAD_LEFT);
-        $dia = str_pad((string) mt_rand(14, 31), 2, '0', STR_PAD_LEFT);
+        $dia = str_pad((string) mt_rand(12, 30), 2, '0', STR_PAD_LEFT);
         $h = str_pad((string) mt_rand(8, 20), 2, '0', STR_PAD_LEFT);
         $m = str_pad((string) mt_rand(0, 59), 2, '0', STR_PAD_LEFT);
 
@@ -606,9 +613,9 @@ class Gestion2025_2Seeder extends Seeder
             'stripe_session_id' => 'cs_'.Str::random(24),
             'stripe_payment_intent_id' => 'pi_'.Str::random(24),
             'referencia_externa' => null,
-            'numero_factura' => "FAC-20252-{$num}",
+            'numero_factura' => "FAC-20261-{$num}",
             'estado' => 'completado',
-            'fecha' => "2025-07-{$dia} {$h}:{$m}:00",
+            'fecha' => "2026-01-{$dia} {$h}:{$m}:00",
             'created_at' => $this->nowStr,
             'updated_at' => $this->nowStr,
         ]);
@@ -616,12 +623,6 @@ class Gestion2025_2Seeder extends Seeder
 
     // ── Evaluaciones ─────────────────────────────────────────────────────────
 
-    /**
-     * Crea 3 exámenes por materia. Si $unaMateriaReprobada es true, una materia
-     * al azar recibe notas por debajo de la mínima (35–55) mientras el resto usa
-     * la banda [$min, $max]; sirve para ilustrar a quien reprueba la admisión por
-     * una sola materia pese a tener buen promedio.
-     */
     private function insertarEvaluaciones(int $postId, int $min, int $max, bool $unaMateriaReprobada = false): void
     {
         $pesos = [1 => 30, 2 => 30, 3 => 40];

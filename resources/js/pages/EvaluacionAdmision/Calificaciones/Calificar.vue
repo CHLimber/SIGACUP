@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { Head, Link, router } from '@inertiajs/vue3';
-import { computed, ref } from 'vue';
 import { Save } from 'lucide-vue-next';
+import { computed, ref } from 'vue';
 import { Button } from '@/components/ui/button';
 import { dashboard } from '@/routes';
 
@@ -61,13 +61,18 @@ const notas = ref<Record<number, { e1: string; e2: string; e3: string }>>(
 const guardando = ref(false);
 
 function parseNota(v: string): number | null {
-    if (v === '') return null;
+    if (v === '') {
+return null;
+}
+
     const n = parseFloat(v);
+
     return isNaN(n) ? null : Math.min(100, Math.max(0, n));
 }
 
 function pond(nota: string, peso: number): number | null {
     const n = parseNota(nota);
+
     return n === null ? null : (n * peso) / 100;
 }
 
@@ -76,13 +81,21 @@ function notaFinal(pid: number): number | null {
     const p1 = pond(fila.e1, props.pesos.examen_1);
     const p2 = pond(fila.e2, props.pesos.examen_2);
     const p3 = pond(fila.e3, props.pesos.examen_3);
-    if (p1 === null && p2 === null && p3 === null) return null;
+
+    if (p1 === null && p2 === null && p3 === null) {
+return null;
+}
+
     return (p1 ?? 0) + (p2 ?? 0) + (p3 ?? 0);
 }
 
 function estadoEstudiante(pid: number): 'aprobado' | 'reprobado' | null {
     const nf = notaFinal(pid);
-    if (nf === null) return null;
+
+    if (nf === null) {
+return null;
+}
+
     return nf >= props.pesos.nota_minima ? 'aprobado' : 'reprobado';
 }
 
@@ -101,6 +114,7 @@ function guardar() {
     guardando.value = true;
     const calificaciones = props.estudiantes.map((e) => {
         const fila = notas.value[e.postulacion_id];
+
         return {
             postulacion_id: e.postulacion_id,
             examen_1: fila.e1 !== '' ? fila.e1 : null,
@@ -111,7 +125,9 @@ function guardar() {
     router.put(
         `/administracion/calificaciones/${props.grupo.id}`,
         { calificaciones },
-        { preserveScroll: true, onFinish: () => { guardando.value = false; } },
+        { preserveScroll: true, onFinish: () => {
+ guardando.value = false; 
+} },
     );
 }
 </script>

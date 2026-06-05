@@ -1,9 +1,8 @@
 <script setup lang="ts">
 import { Head, Link, router } from '@inertiajs/vue3';
-import { computed, ref } from 'vue';
-import { dashboard } from '@/routes';
-import { Button } from '@/components/ui/button';
 import { AlertTriangle, Users } from 'lucide-vue-next';
+import { computed, ref } from 'vue';
+import { Button } from '@/components/ui/button';
 import {
     Dialog,
     DialogContent,
@@ -12,6 +11,7 @@ import {
     DialogHeader,
     DialogTitle,
 } from '@/components/ui/dialog';
+import { dashboard } from '@/routes';
 
 interface Gestion {
     id: number;
@@ -61,7 +61,9 @@ function ejecutarGenerar() {
     router.post(
         `/administracion/grupos/${props.gestion.id}/generar`,
         {},
-        { onFinish: () => { procesando.value = false; } },
+        { onFinish: () => {
+ procesando.value = false; 
+} },
     );
 }
 
@@ -135,7 +137,6 @@ const puedeGenerar = computed(() =>
                     <tr style="background-color: #060041;">
                         <th class="px-5 py-3.5 text-left text-xs font-semibold uppercase tracking-wider text-white">Grupo</th>
                         <th class="px-5 py-3.5 text-left text-xs font-semibold uppercase tracking-wider text-white">Postulantes asignados</th>
-                        <th class="px-5 py-3.5 text-left text-xs font-semibold uppercase tracking-wider text-white">Estado</th>
                         <th class="px-5 py-3.5 text-right text-xs font-semibold uppercase tracking-wider text-white">Acción</th>
                     </tr>
                 </thead>
@@ -161,11 +162,6 @@ const puedeGenerar = computed(() =>
                                 <span class="text-gray-700 font-medium">{{ g.estudiantes }}</span>
                                 <span class="text-gray-400 text-xs">/ {{ capacidadMax }}</span>
                             </div>
-                        </td>
-                        <td class="px-5 py-4">
-                            <span class="inline-flex rounded-full bg-yellow-100 px-2.5 py-0.5 text-xs font-semibold text-yellow-700">
-                                Sin horario asignado
-                            </span>
                         </td>
                         <td class="px-5 py-4 text-right">
                             <Link

@@ -1,9 +1,8 @@
 <script setup lang="ts">
 import { Head, router } from '@inertiajs/vue3';
-import { computed, ref } from 'vue';
-import { dashboard } from '@/routes';
-import { Button } from '@/components/ui/button';
 import { GraduationCap, UserCheck, AlertTriangle } from 'lucide-vue-next';
+import { computed, ref } from 'vue';
+import { Button } from '@/components/ui/button';
 import {
     Dialog,
     DialogContent,
@@ -12,6 +11,7 @@ import {
     DialogHeader,
     DialogTitle,
 } from '@/components/ui/dialog';
+import { dashboard } from '@/routes';
 
 type EstadoEstudiante = 'pendiente' | 'en_revision' | 'requiere_correcciones' | 'aprobado_pendiente_pago' | 'pagado' | 'rechazado';
 type EstadoDocente    = 'pendiente' | 'en_revision' | 'requiere_correcciones' | 'aprobado' | 'rechazado';
@@ -117,11 +117,16 @@ function confirmarEliminar(tipo: 'estudiante' | 'docente', c: CandidatoBase) {
 }
 
 function cancelarEliminar() {
-    if (!eliminando.value) candidatoAEliminar.value = null;
+    if (!eliminando.value) {
+candidatoAEliminar.value = null;
+}
 }
 
 function ejecutarEliminar() {
-    if (!candidatoAEliminar.value) return;
+    if (!candidatoAEliminar.value) {
+return;
+}
+
     const { id, tipo } = candidatoAEliminar.value;
     eliminando.value = true;
     router.delete(`/administracion/admision/candidato-${tipo}/${id}`, {

@@ -3,7 +3,6 @@
 namespace App\RegistroInscripcion\Models;
 
 use App\Models\Persona;
-use App\Models\User;
 use App\SeguridadAcceso\Concerns\RegistraBitacora;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -31,7 +30,7 @@ class CandidatoEstudiante extends Model
     protected $table = 'candidato_estudiante';
 
     protected $fillable = [
-        'persona_id', 'estado', 'token_acceso', 'motivo_rechazo', 'user_id',
+        'persona_id', 'estado', 'token_acceso', 'motivo_rechazo',
     ];
 
     protected $appends = [
@@ -47,11 +46,6 @@ class CandidatoEstudiante extends Model
     public function persona(): BelongsTo
     {
         return $this->belongsTo(Persona::class);
-    }
-
-    public function user(): BelongsTo
-    {
-        return $this->belongsTo(User::class);
     }
 
     public function postulaciones(): HasMany

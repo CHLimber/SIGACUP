@@ -33,7 +33,6 @@ class RolesPermisosSeeder extends Seeder
         ]],
         'autoridad' => ['Autoridad', 'Consulta de reportes e indicadores.', ['reportes.ver']],
         'docente' => ['Docente', 'Acceso al panel docente.', []],
-        'estudiante' => ['Estudiante', 'Acceso al portal del estudiante.', []],
     ];
 
     public function run(): void

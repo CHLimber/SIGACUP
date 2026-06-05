@@ -8,7 +8,6 @@ enum UserRole: string
     case Coordinador = 'coordinador';
     case Docente = 'docente';
     case Autoridad = 'autoridad';
-    case Estudiante = 'estudiante';
 
     public function label(): string
     {
@@ -17,7 +16,6 @@ enum UserRole: string
             self::Coordinador => 'Coordinador',
             self::Docente => 'Docente',
             self::Autoridad => 'Autoridad',
-            self::Estudiante => 'Estudiante',
         };
     }
 }

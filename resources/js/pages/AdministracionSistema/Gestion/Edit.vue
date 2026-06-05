@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { Head, Link, router, useForm } from '@inertiajs/vue3';
-import { computed } from 'vue';
 import { Check, X } from 'lucide-vue-next';
+import { computed } from 'vue';
 import { dashboard } from '@/routes';
 
 interface Gestion {
@@ -83,8 +83,15 @@ function submit() {
 
 function avanzar() {
     const label = nextLabel[props.gestion.estado];
-    if (!label) return;
-    if (!confirm(`¿Avanzar la gestión ${props.gestion.anio}-${props.gestion.semestre} al estado "${label}"?\n\nEsta acción no se puede deshacer.`)) return;
+
+    if (!label) {
+return;
+}
+
+    if (!confirm(`¿Avanzar la gestión ${props.gestion.anio}-${props.gestion.semestre} al estado "${label}"?\n\nEsta acción no se puede deshacer.`)) {
+return;
+}
+
     router.patch(`/administracion/gestiones/${props.gestion.id}/avanzar`);
 }
 </script>

@@ -8,6 +8,7 @@ use App\OrganizacionAcademica\Controllers\DocentesController;
 use App\OrganizacionAcademica\Controllers\GruposController;
 use App\RegistroInscripcion\Controllers\EstudiantesController;
 use App\ReportesNotificaciones\Controllers\ReporteController;
+use App\ReportesNotificaciones\Controllers\ReporteIAController;
 use App\SeguridadAcceso\Controllers\BitacoraController;
 use App\SeguridadAcceso\Controllers\RolesController;
 use App\SeguridadAcceso\Controllers\UsuariosController;
@@ -56,7 +57,11 @@ Route::middleware(['auth', 'verified'])->prefix('administracion')->group(functio
     Route::middleware('permiso:reportes.ver')->prefix('reportes')->name('reportes.')->group(function () {
         Route::get('/', [ReporteController::class, 'index'])->name('index');
         Route::get('resumen', [ReporteController::class, 'resumen'])->name('resumen');
+        Route::get('resumen/pdf', [ReporteController::class, 'resumenPdf'])->name('resumen.pdf');
         Route::get('exportar/csv', [ReporteController::class, 'exportarCsv'])->name('exportar.csv');
+        Route::get('exportar/pdf', [ReporteController::class, 'exportarPdf'])->name('exportar.pdf');
+        Route::get('ia', [ReporteIAController::class, 'index'])->name('ia.index');
+        Route::post('ia/consultar', [ReporteIAController::class, 'consultar'])->name('ia.consultar');
     });
 
     Route::middleware('permiso:proceso_admision.gestionar')->prefix('proceso-admision')->name('proceso-admision.')->group(function () {
@@ -87,6 +92,9 @@ Route::middleware(['auth', 'verified'])->prefix('administracion')->group(functio
 
     Route::middleware('permiso:usuarios.gestionar')->prefix('usuarios')->name('usuarios.')->group(function () {
         Route::get('/', [UsuariosController::class, 'index'])->name('index');
+        Route::get('plantilla', [UsuariosController::class, 'plantillaCsv'])->name('plantilla');
+        Route::post('importar/preview', [UsuariosController::class, 'previsualizarImport'])->name('importar.preview');
+        Route::post('importar', [UsuariosController::class, 'importar'])->name('importar');
         Route::post('/', [UsuariosController::class, 'store'])->name('store');
         Route::patch('{user}', [UsuariosController::class, 'update'])->name('update');
         Route::patch('{user}/toggle', [UsuariosController::class, 'toggleActivo'])->name('toggle');

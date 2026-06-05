@@ -4,6 +4,7 @@ use App\AdministracionSistema\Models\Carrera;
 use App\AdministracionSistema\Models\Gestion;
 use App\AdministracionSistema\Models\Materia;
 use App\OrganizacionAcademica\Models\Grupo;
+use App\RegistroInscripcion\Controllers\ConsultaResultadoController;
 use App\RegistroInscripcion\Controllers\PortalCandidatoController;
 use App\RegistroInscripcion\Controllers\PortalPagoController;
 use App\RegistroInscripcion\Controllers\RegistroController;
@@ -13,25 +14,31 @@ use App\RegistroInscripcion\Models\Postulacion;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 
-function gestionActiva(): ?Gestion
-{
-    return Gestion::where('estado', '!=', 'cerrada')
-        ->orderByDesc('anio')
-        ->orderByDesc('semestre')
-        ->with('parametros')
-        ->first();
+// Los guards function_exists evitan el "Cannot redeclare" cuando el archivo de
+// rutas se carga más de una vez (p. ej. al recrear la app entre tests).
+if (! function_exists('gestionActiva')) {
+    function gestionActiva(): ?Gestion
+    {
+        return Gestion::where('estado', '!=', 'cerrada')
+            ->orderByDesc('anio')
+            ->orderByDesc('semestre')
+            ->with('parametros')
+            ->first();
+    }
 }
 
-function propsGestion(?Gestion $g): array
-{
-    return [
-        'nota_minima' => (int) ($g?->parametro('nota_minima_aprobacion') ?? 60),
-        'peso1' => (int) ($g?->parametro('peso_examen_1') ?? 30),
-        'peso2' => (int) ($g?->parametro('peso_examen_2') ?? 30),
-        'peso3' => (int) ($g?->parametro('peso_examen_3') ?? 40),
-        'gestion_label' => $g ? "{$g->anio} · ".($g->semestre === 1 ? '1er Semestre' : '2do Semestre') : null,
-        'gestion_estado' => $g?->estado,
-    ];
+if (! function_exists('propsGestion')) {
+    function propsGestion(?Gestion $g): array
+    {
+        return [
+            'nota_minima' => (int) ($g?->parametro('nota_minima_aprobacion') ?? 60),
+            'peso1' => (int) ($g?->parametro('peso_examen_1') ?? 30),
+            'peso2' => (int) ($g?->parametro('peso_examen_2') ?? 30),
+            'peso3' => (int) ($g?->parametro('peso_examen_3') ?? 40),
+            'gestion_label' => $g ? "{$g->anio} · ".($g->semestre === 1 ? '1er Semestre' : '2do Semestre') : null,
+            'gestion_estado' => $g?->estado,
+        ];
+    }
 }
 
 Route::get('/', function () {
@@ -42,6 +49,8 @@ Route::get('/', function () {
 
 Route::post('/registro/estudiante', [RegistroController::class, 'storeCandidatoEstudiante'])->name('registro.estudiante');
 Route::post('/registro/docente', [RegistroController::class, 'storeCandidatoDocente'])->name('registro.docente');
+
+Route::post('/consulta/resultados', [ConsultaResultadoController::class, 'consultar'])->name('consulta.resultados');
 
 Route::prefix('candidato/{token}')->name('portal.candidato.')->group(function () {
     Route::get('requisitos', [PortalCandidatoController::class, 'show'])->name('show');

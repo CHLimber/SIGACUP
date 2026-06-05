@@ -1,7 +1,8 @@
 <script setup lang="ts">
 import { Head, router } from '@inertiajs/vue3';
-import { computed, type Component } from 'vue';
 import { GraduationCap, UserCheck, Clock, Check, X, Paperclip, Undo2, AlertTriangle } from 'lucide-vue-next';
+import { computed  } from 'vue';
+import type {Component} from 'vue';
 import { dashboard } from '@/routes';
 
 type EstadoArchivo = 'pendiente_revision' | 'aprobado' | 'rechazado';
@@ -60,13 +61,18 @@ const props = defineProps<{
 }>();
 
 const motivoNoPuedeAprobar = computed<string>(() => {
-    if (props.puedeAprobar) return '';
+    if (props.puedeAprobar) {
+return '';
+}
+
     if (props.tipo === 'estudiante' && !props.tienePostulacion) {
         return 'El candidato no tiene una postulación activa (la inscripción se hizo sin una gestión disponible). No es posible aprobarlo.';
     }
+
     if (props.candidato.estado !== 'en_revision' && props.candidato.estado !== 'requiere_correcciones') {
         return 'La solicitud no está en un estado que permita aprobarla.';
     }
+
     return 'Debes aprobar todos los requisitos obligatorios antes de cerrar la solicitud.';
 });
 
@@ -115,8 +121,14 @@ function fmtFecha(f: string): string {
 }
 
 function fmtTamano(bytes: number): string {
-    if (bytes < 1024) return `${bytes} B`;
-    if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+    if (bytes < 1024) {
+return `${bytes} B`;
+}
+
+    if (bytes < 1024 * 1024) {
+return `${(bytes / 1024).toFixed(1)} KB`;
+}
+
     return `${(bytes / (1024 * 1024)).toFixed(2)} MB`;
 }
 
@@ -125,18 +137,30 @@ function urlDescargar(archivoId: number): string {
 }
 
 function aprobarRequisito(req: RequisitoItem) {
-    if (!req.archivo) return;
+    if (!req.archivo) {
+return;
+}
+
     router.patch('/administracion/admision/requisitos/aprobar', { tipo: props.tipo, id: req.archivo.id }, { preserveScroll: true });
 }
 
 function rechazarRequisito(req: RequisitoItem) {
-    if (!req.archivo) return;
+    if (!req.archivo) {
+return;
+}
+
     const motivo = prompt(`Indica el motivo del rechazo de "${req.nombre}".\n\nEl candidato verá este mensaje y deberá corregir el archivo.`);
-    if (motivo === null) return;
+
+    if (motivo === null) {
+return;
+}
+
     if (motivo.trim().length < 5) {
         alert('El motivo debe tener al menos 5 caracteres.');
+
         return;
     }
+
     router.patch(
         '/administracion/admision/requisitos/rechazar',
         { tipo: props.tipo, id: req.archivo.id, motivo: motivo.trim() },
@@ -148,7 +172,11 @@ function aprobarCandidato() {
     const msg = props.tipo === 'docente'
         ? `¿Aprobar al candidato ${props.candidato.nombre_completo} como docente?\n\nSe creará una cuenta de usuario Docente y se enviarán las credenciales por email.`
         : `¿Aprobar al candidato ${props.candidato.nombre_completo} como estudiante CUP?\n\nSe le enviará un link de pago de matrícula por correo. Tras el pago se le crearán las credenciales.`;
-    if (!confirm(msg)) return;
+
+    if (!confirm(msg)) {
+return;
+}
+
     router.patch(`/administracion/admision/candidato-${props.tipo}/${props.candidato.id}/aprobar`);
 }
 
@@ -159,11 +187,17 @@ function rechazarCandidato() {
         + '(junto con sus archivos y datos).\n\n'
         + 'Motivo (obligatorio, mínimo 5 caracteres):',
     );
-    if (motivo === null) return;
+
+    if (motivo === null) {
+return;
+}
+
     if (motivo.trim().length < 5) {
         alert('Debes indicar un motivo.');
+
         return;
     }
+
     router.patch(
         `/administracion/admision/candidato-${props.tipo}/${props.candidato.id}/rechazar`,
         { motivo: motivo.trim() },
@@ -171,7 +205,10 @@ function rechazarCandidato() {
 }
 
 function solicitarCorrecciones() {
-    if (!confirm(`Solicitar correcciones a ${props.candidato.nombre_completo}.\n\nSe enviará un email con los motivos de rechazo de cada requisito. El candidato podrá volver a subir solo los archivos rechazados.`)) return;
+    if (!confirm(`Solicitar correcciones a ${props.candidato.nombre_completo}.\n\nSe enviará un email con los motivos de rechazo de cada requisito. El candidato podrá volver a subir solo los archivos rechazados.`)) {
+return;
+}
+
     router.patch(`/administracion/admision/candidato-${props.tipo}/${props.candidato.id}/solicitar-correcciones`);
 }
 

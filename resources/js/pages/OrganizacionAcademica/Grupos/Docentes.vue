@@ -1,9 +1,8 @@
 <script setup lang="ts">
 import { Head, Link, router } from '@inertiajs/vue3';
-import { computed, ref } from 'vue';
-import { dashboard } from '@/routes';
-import { Button } from '@/components/ui/button';
 import { AlertTriangle, Shuffle, Users } from 'lucide-vue-next';
+import { computed, ref } from 'vue';
+import { Button } from '@/components/ui/button';
 import {
     Dialog,
     DialogContent,
@@ -12,6 +11,7 @@ import {
     DialogHeader,
     DialogTitle,
 } from '@/components/ui/dialog';
+import { dashboard } from '@/routes';
 
 interface Gestion {
     id: number;
@@ -66,28 +66,39 @@ const labelSemestre = computed(() => props.gestion.semestre === 1 ? '1er Sem' : 
 
 const hayDocentes = computed(() => props.docentes.length > 0);
 
-const nombreDocente = (id: number | null): string =>
-    id === null ? '' : props.docentes.find(d => d.id === id)?.nombre ?? `Docente #${id}`;
-
 // Agrupa las materias por nombre de grupo (A, B, C…)
 const gruposPorNombre = computed(() => {
     const mapa = new Map<string, GrupoMateria[]>();
+
     for (const g of props.grupos) {
-        if (!mapa.has(g.nombre)) mapa.set(g.nombre, []);
+        if (!mapa.has(g.nombre)) {
+mapa.set(g.nombre, []);
+}
+
         mapa.get(g.nombre)!.push(g);
     }
+
     return Array.from(mapa.entries()).map(([nombre, materias]) => ({ nombre, materias }));
 });
 
 // Carga actual por docente, derivada de la selección
 const cargaPorDocente = computed(() => {
     const mapa = new Map<number, GrupoMateria[]>();
+
     for (const g of props.grupos) {
         const d = seleccion.value[g.id];
-        if (d == null) continue;
-        if (!mapa.has(d)) mapa.set(d, []);
+
+        if (d == null) {
+continue;
+}
+
+        if (!mapa.has(d)) {
+mapa.set(d, []);
+}
+
         mapa.get(d)!.push(g);
     }
+
     return mapa;
 });
 
@@ -95,22 +106,64 @@ const cargaPorDocente = computed(() => {
 const conflictoHorarioDocente = (id: number): boolean => {
     const asignados = cargaPorDocente.value.get(id) ?? [];
     const vistos = new Set<number>();
+
     for (const g of asignados) {
-        if (g.horario_id == null) continue;
-        if (vistos.has(g.horario_id)) return true;
+        if (g.horario_id == null) {
+continue;
+}
+
+        if (vistos.has(g.horario_id)) {
+return true;
+}
+
         vistos.add(g.horario_id);
     }
+
     return false;
 };
+
+type Tono = 'red' | 'amber' | 'green' | 'gray';
+
+const tonoClases: Record<Tono, { dot: string; text: string }> = {
+    red:   { dot: 'bg-red-500',     text: 'text-red-700' },
+    amber: { dot: 'bg-amber-500',   text: 'text-amber-700' },
+    green: { dot: 'bg-emerald-500', text: 'text-emerald-700' },
+    gray:  { dot: 'border border-gray-300 bg-white', text: 'text-gray-500' },
+};
+
+function estadoCarga(total: number, excede: boolean, choca: boolean): { label: string; tono: Tono } {
+    if (excede) {
+        return { label: 'Excede', tono: 'red' };
+    }
+
+    if (choca) {
+        return { label: 'Choque horario', tono: 'red' };
+    }
+
+    if (total === 0) {
+        return { label: 'Libre', tono: 'gray' };
+    }
+
+    if (total >= props.maxPorDocente) {
+        return { label: 'Lleno', tono: 'amber' };
+    }
+
+    return { label: 'Normal', tono: 'green' };
+}
 
 const resumenDocentes = computed(() =>
     props.docentes.map(d => {
         const asignados = cargaPorDocente.value.get(d.id) ?? [];
+        const total     = asignados.length;
+        const excede    = total > props.maxPorDocente;
+        const choca     = conflictoHorarioDocente(d.id);
+
         return {
             ...d,
-            total:    asignados.length,
-            excede:   asignados.length > props.maxPorDocente,
-            choca:    conflictoHorarioDocente(d.id),
+            total,
+            excede,
+            choca,
+            estado: estadoCarga(total, excede, choca),
         };
     }),
 );
@@ -121,8 +174,12 @@ const hayAsignaciones  = computed(() => props.grupos.some(g => g.docente_id != n
 
 // Marca si una opción de docente generaría choque de horario para un grupo dado
 const opcionChoca = (grupo: GrupoMateria, docenteId: number): boolean => {
-    if (grupo.horario_id == null) return false;
+    if (grupo.horario_id == null) {
+return false;
+}
+
     const asignados = cargaPorDocente.value.get(docenteId) ?? [];
+
     return asignados.some(g => g.id !== grupo.id && g.horario_id === grupo.horario_id);
 };
 
@@ -135,7 +192,9 @@ function guardar() {
     router.patch(
         `/administracion/grupos/${props.gestion.id}/asignar-docentes`,
         { asignaciones },
-        { preserveScroll: true, onFinish: () => { procesando.value = false; } },
+        { preserveScroll: true, onFinish: () => {
+ procesando.value = false; 
+} },
     );
 }
 
@@ -153,7 +212,9 @@ function ejecutarAuto() {
     router.post(
         `/administracion/grupos/${props.gestion.id}/asignar-docentes/auto`,
         {},
-        { preserveScroll: true, onFinish: () => { procesando.value = false; } },
+        { preserveScroll: true, onFinish: () => {
+ procesando.value = false; 
+} },
     );
 }
 </script>
@@ -220,24 +281,43 @@ function ejecutarAuto() {
 
         <template v-else>
             <!-- Resumen de carga por docente -->
-            <div class="rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
-                <h2 class="text-base font-semibold text-gray-900">Carga por docente</h2>
-                <div class="mt-3 flex flex-wrap gap-2">
-                    <span
-                        v-for="r in resumenDocentes"
-                        :key="r.id"
-                        class="inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-xs font-medium"
-                        :class="(r.excede || r.choca)
-                            ? 'border-red-300 bg-red-50 text-red-700'
-                            : r.total > 0
-                                ? 'border-[#073b75]/30 bg-[#073b75]/5 text-[#073b75]'
-                                : 'border-gray-200 bg-gray-50 text-gray-500'"
-                    >
-                        {{ r.nombre }}
-                        <span class="font-bold">{{ r.total }}/{{ maxPorDocente }}</span>
-                        <AlertTriangle v-if="r.excede || r.choca" class="h-3.5 w-3.5" />
-                    </span>
+            <div class="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
+                <div class="border-b border-gray-100 px-5 py-3.5">
+                    <h2 class="text-base font-semibold text-gray-900">Carga por docente</h2>
                 </div>
+                <table class="w-full text-sm">
+                    <thead>
+                        <tr class="bg-gray-50">
+                            <th class="px-5 py-2.5 text-left text-xs font-semibold uppercase tracking-wider text-gray-600">Docente</th>
+                            <th class="px-5 py-2.5 text-left text-xs font-semibold uppercase tracking-wider text-gray-600">Grupos</th>
+                            <th class="px-5 py-2.5 text-left text-xs font-semibold uppercase tracking-wider text-gray-600">Estado</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-gray-100">
+                        <tr
+                            v-for="r in resumenDocentes"
+                            :key="r.id"
+                            class="transition-colors hover:bg-gray-50"
+                            :class="(r.excede || r.choca) ? 'bg-red-50/40' : ''"
+                        >
+                            <td class="px-5 py-3">
+                                <p class="font-medium text-gray-900">{{ r.nombre }}</p>
+                                <p v-if="r.titulo" class="text-xs text-gray-500">{{ r.titulo }}</p>
+                            </td>
+                            <td class="px-5 py-3 tabular-nums text-gray-700">
+                                <span class="font-semibold text-gray-900">{{ r.total }}</span>
+                                <span class="text-gray-400"> / {{ maxPorDocente }}</span>
+                            </td>
+                            <td class="px-5 py-3">
+                                <span class="inline-flex items-center gap-1.5 text-xs font-medium" :class="tonoClases[r.estado.tono].text">
+                                    <AlertTriangle v-if="r.estado.tono === 'red'" class="h-3.5 w-3.5" />
+                                    <span v-else class="h-2 w-2 rounded-full" :class="tonoClases[r.estado.tono].dot" />
+                                    {{ r.estado.label }}
+                                </span>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
             </div>
 
             <!-- Grupos -->

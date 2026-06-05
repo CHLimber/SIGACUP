@@ -7,7 +7,6 @@ import {
     FileText,
     Filter,
     PieChart,
-    Printer,
     Search,
     Table as TableIcon,
 } from 'lucide-vue-next';
@@ -239,8 +238,12 @@ return;
     window.location.href = '/administracion/reportes/exportar/csv?' + toQuery(construirData());
 }
 
-function imprimir() {
-    window.print();
+function exportarPdf() {
+    if (!reporteActivo.value) {
+return;
+}
+
+    window.location.href = '/administracion/reportes/exportar/pdf?' + toQuery(construirData());
 }
 
 // ── Presentación de celdas ───────────────────────────────────────────────
@@ -543,9 +546,9 @@ out.push({ label: f.label, valor: partes.join(' — ') });
                     v-if="resultado"
                     type="button"
                     class="inline-flex items-center gap-2 rounded-md border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 transition hover:bg-gray-50"
-                    @click="imprimir"
+                    @click="exportarPdf"
                 >
-                    <Printer class="h-4 w-4" /> Imprimir / PDF
+                    <FileText class="h-4 w-4" /> PDF
                 </button>
             </div>
 

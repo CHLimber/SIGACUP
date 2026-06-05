@@ -8,7 +8,9 @@ export function initializeFlashToast(): void {
             | { toast?: FlashToast }
             | undefined;
 
-        if (!data?.toast) return;
+        if (!data?.toast) {
+return;
+}
 
         toast[data.toast.type](data.toast.message);
     });

@@ -70,10 +70,23 @@ const hayFiltros = computed(() => !!(filtroDatos.value || filtroGestionId.value 
 
 function aplicarFiltros(page?: number) {
     const params: Record<string, string | number> = {};
-    if (filtroDatos.value)     params.datos      = filtroDatos.value;
-    if (filtroGestionId.value) params.gestion_id = filtroGestionId.value;
-    if (busqueda.value.trim()) params.busqueda   = busqueda.value.trim();
-    if (page && page > 1)      params.page       = page;
+
+    if (filtroDatos.value)     {
+params.datos      = filtroDatos.value;
+}
+
+    if (filtroGestionId.value) {
+params.gestion_id = filtroGestionId.value;
+}
+
+    if (busqueda.value.trim()) {
+params.busqueda   = busqueda.value.trim();
+}
+
+    if (page && page > 1)      {
+params.page       = page;
+}
+
     router.get('/administracion/docentes', params, { preserveScroll: true, replace: true });
 }
 
@@ -81,7 +94,10 @@ watch([filtroDatos, filtroGestionId], () => aplicarFiltros());
 
 let debounceTimer: ReturnType<typeof setTimeout> | null = null;
 watch(busqueda, () => {
-    if (debounceTimer) clearTimeout(debounceTimer);
+    if (debounceTimer) {
+clearTimeout(debounceTimer);
+}
+
     debounceTimer = setTimeout(() => aplicarFiltros(), 400);
 });
 
@@ -93,19 +109,37 @@ function limpiarFiltros() {
 
 // ── Paginación ────────────────────────────────────────────────────────────────
 function irAPagina(page: number) {
-    if (page < 1 || page > props.docentes.last_page) return;
+    if (page < 1 || page > props.docentes.last_page) {
+return;
+}
+
     aplicarFiltros(page);
 }
 
 const paginas = computed<(number | '...')[]>(() => {
     const total = props.docentes.last_page;
     const actual = props.docentes.current_page;
-    if (total <= 7) return Array.from({ length: total }, (_, i) => i + 1);
+
+    if (total <= 7) {
+return Array.from({ length: total }, (_, i) => i + 1);
+}
+
     const pages: (number | '...')[] = [1];
-    if (actual > 3) pages.push('...');
-    for (let i = Math.max(2, actual - 1); i <= Math.min(total - 1, actual + 1); i++) pages.push(i);
-    if (actual < total - 2) pages.push('...');
+
+    if (actual > 3) {
+pages.push('...');
+}
+
+    for (let i = Math.max(2, actual - 1); i <= Math.min(total - 1, actual + 1); i++) {
+pages.push(i);
+}
+
+    if (actual < total - 2) {
+pages.push('...');
+}
+
     pages.push(total);
+
     return pages;
 });
 </script>

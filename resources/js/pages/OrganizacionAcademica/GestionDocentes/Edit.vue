@@ -1,8 +1,8 @@
 <script setup lang="ts">
 import { Head, Link, router } from '@inertiajs/vue3';
 import { ref } from 'vue';
-import { dashboard } from '@/routes';
 import { Button } from '@/components/ui/button';
+import { dashboard } from '@/routes';
 
 interface Docente {
     user_id: number;
@@ -65,8 +65,12 @@ function guardar() {
         `/administracion/docentes/${props.docente.user_id}`,
         form.value,
         {
-            onError: (errs) => { errors.value = errs as Record<string, string>; },
-            onFinish: () => { procesando.value = false; },
+            onError: (errs) => {
+ errors.value = errs as Record<string, string>; 
+},
+            onFinish: () => {
+ procesando.value = false; 
+},
         },
     );
 }
@@ -76,14 +80,26 @@ function descargar(id: number) {
 }
 
 function fmtFecha(f: string | null): string {
-    if (!f) return '—';
+    if (!f) {
+return '—';
+}
+
     return new Date(f).toLocaleDateString('es-BO', { day: '2-digit', month: '2-digit', year: 'numeric' });
 }
 
 function estadoArchivo(e: string): { label: string; clases: string } {
-    if (e === 'aprobado')             return { label: 'Aprobado',   clases: 'bg-green-100 text-green-700' };
-    if (e === 'rechazado')            return { label: 'Rechazado',  clases: 'bg-red-100 text-red-700' };
-    if (e === 'pendiente_revision')   return { label: 'Pendiente',  clases: 'bg-yellow-100 text-yellow-700' };
+    if (e === 'aprobado')             {
+return { label: 'Aprobado',   clases: 'bg-green-100 text-green-700' };
+}
+
+    if (e === 'rechazado')            {
+return { label: 'Rechazado',  clases: 'bg-red-100 text-red-700' };
+}
+
+    if (e === 'pendiente_revision')   {
+return { label: 'Pendiente',  clases: 'bg-yellow-100 text-yellow-700' };
+}
+
     return { label: e, clases: 'bg-gray-100 text-gray-700' };
 }
 </script>

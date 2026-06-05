@@ -1,8 +1,9 @@
 <script setup lang="ts">
-import { computed, ref, type Component } from 'vue';
-import { Head, Link, useForm } from '@inertiajs/vue3';
+import { Head, Link, useForm, usePage } from '@inertiajs/vue3';
+import { Monitor, Bot, Globe, Ruler, Type, Atom, Trophy, GraduationCap, FlaskConical, BarChart2, Search, CheckCircle2, XCircle, Award } from 'lucide-vue-next';
+import { computed, ref  } from 'vue';
+import type {Component} from 'vue';
 import { dashboard, login } from '@/routes';
-import { Monitor, Bot, Globe, Ruler, Type, Atom, Trophy, GraduationCap, FlaskConical, BarChart2 } from 'lucide-vue-next';
 
 const props = defineProps<{
     nota_minima: number;
@@ -72,6 +73,7 @@ const tema = computed(() => {
             botonLabel:   'Enviar solicitud de inscripción',
         };
     }
+
     return {
         principal:    '#073b75',
         gradiente:    'linear-gradient(to right, #060041, #073b75)',
@@ -86,6 +88,7 @@ const tema = computed(() => {
 const maxFechaNacimiento = computed(() => {
     const hoy = new Date();
     hoy.setFullYear(hoy.getFullYear() - 10);
+
     return hoy.toISOString().slice(0, 10);
 });
 
@@ -96,6 +99,40 @@ function submit() {
     form.post(url, {
         onSuccess: () => form.reset(),
     });
+}
+
+// ── Consulta de resultados por CI ───────────────────────────────────────
+interface MateriaResultado {
+    codigo: string;
+    nombre: string;
+    nota: number | null;
+    aprobada: boolean;
+}
+interface ConsultaResultado {
+    encontrado: boolean;
+    ci: string;
+    mensaje?: string;
+    nombre?: string;
+    gestion?: string | null;
+    carrera1?: string | null;
+    carrera2?: string | null;
+    carrera_asignada?: string | null;
+    estado_admision?: string;
+    materias?: MateriaResultado[];
+    promedio?: number | null;
+    estado_academico?: 'aprobado' | 'reprobado' | 'reprobado_materia' | null;
+    nota_minima?: number;
+}
+
+const page = usePage();
+const formConsulta = useForm({ ci: '' });
+
+const resultadoConsulta = computed<ConsultaResultado | null>(
+    () => (page.props.flash as { consulta_resultado?: ConsultaResultado } | undefined)?.consulta_resultado ?? null,
+);
+
+function consultarNotas() {
+    formConsulta.post('/consulta/resultados', { preserveScroll: true, preserveState: true });
 }
 </script>
 
@@ -550,13 +587,140 @@ function submit() {
         </div>
     </section>
 
-    <!-- ─── VER NOTAS (placeholder) ─── -->
+    <!-- ─── VER NOTAS / CONSULTA POR CI ─── -->
     <section id="notas" class="bg-gray-50 py-20">
-        <div class="mx-auto max-w-4xl px-6 text-center">
-            <div class="rounded-2xl border-2 border-dashed border-gray-200 p-16">
-                <BarChart2 class="mx-auto mb-4 h-16 w-16 text-gray-300" />
-                <h2 class="mb-3 text-2xl font-bold text-[#073b75]">Consulta de Notas</h2>
-                <p class="text-gray-400">Esta sección estará disponible una vez publicados los resultados.</p>
+        <div class="mx-auto max-w-3xl px-6">
+            <div class="mb-8 text-center">
+                <BarChart2 class="mx-auto mb-3 h-12 w-12 text-[#073b75]" />
+                <h2 class="mb-3 text-2xl font-bold text-[#073b75]">Consulta de Resultados</h2>
+                <div class="mx-auto h-1 w-16 rounded bg-[#c70e0a]"></div>
+                <p class="mt-4 text-sm text-gray-500">
+                    Ingresá tu Carnet de Identidad (CI) para consultar tus notas y el resultado de tu admisión al CUP.
+                </p>
+            </div>
+
+            <!-- Formulario de consulta -->
+            <form
+                class="mx-auto flex max-w-xl flex-col gap-3 sm:flex-row"
+                @submit.prevent="consultarNotas"
+            >
+                <div class="flex-1">
+                    <input
+                        v-model="formConsulta.ci"
+                        type="text"
+                        required
+                        maxlength="20"
+                        placeholder="Ingresá tu CI (ej. 10000001)"
+                        class="w-full rounded-md border border-gray-300 bg-white px-4 py-3 text-sm text-gray-900 shadow-sm focus:outline-none focus:ring-2 focus:ring-[#073b75]"
+                    />
+                    <p v-if="formConsulta.errors.ci" class="mt-1 text-xs text-red-600">{{ formConsulta.errors.ci }}</p>
+                </div>
+                <button
+                    type="submit"
+                    :disabled="formConsulta.processing"
+                    class="inline-flex items-center justify-center gap-2 rounded-md bg-[#073b75] px-6 py-3 text-sm font-bold text-white shadow transition hover:bg-[#052a55] disabled:opacity-60"
+                >
+                    <Search class="h-4 w-4" />
+                    {{ formConsulta.processing ? 'Consultando…' : 'Consultar' }}
+                </button>
+            </form>
+
+            <!-- Resultado -->
+            <div v-if="resultadoConsulta" class="mx-auto mt-8 max-w-xl">
+                <!-- No encontrado -->
+                <div
+                    v-if="!resultadoConsulta.encontrado"
+                    class="rounded-xl border border-amber-200 bg-amber-50 p-6 text-center text-sm text-amber-800"
+                >
+                    {{ resultadoConsulta.mensaje }}
+                </div>
+
+                <!-- Encontrado -->
+                <div v-else class="overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm">
+                    <!-- Cabecera -->
+                    <div class="px-6 py-5" style="background: linear-gradient(to right, #060041, #073b75);">
+                        <p class="text-xs uppercase tracking-widest text-blue-300">Resultado · Gestión {{ resultadoConsulta.gestion }}</p>
+                        <h3 class="mt-1 text-lg font-bold text-white">{{ resultadoConsulta.nombre }}</h3>
+                        <p class="text-xs text-blue-200">CI: {{ resultadoConsulta.ci }}</p>
+                    </div>
+
+                    <!-- Notas por materia -->
+                    <div class="p-6">
+                        <table class="w-full text-sm">
+                            <thead>
+                                <tr class="border-b border-gray-100 text-left text-xs uppercase tracking-wider text-gray-400">
+                                    <th class="pb-2">Materia</th>
+                                    <th class="pb-2 text-center">Nota final</th>
+                                    <th class="pb-2 text-center">Estado</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr v-for="m in resultadoConsulta.materias" :key="m.codigo" class="border-b border-gray-50 last:border-0">
+                                    <td class="py-2.5 font-medium text-gray-800">{{ m.nombre }}</td>
+                                    <td class="py-2.5 text-center font-semibold" :class="m.aprobada ? 'text-green-600' : 'text-red-600'">
+                                        {{ m.nota ?? '—' }}
+                                    </td>
+                                    <td class="py-2.5 text-center">
+                                        <span
+                                            class="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-semibold"
+                                            :class="m.aprobada ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'"
+                                        >
+                                            {{ m.aprobada ? 'Aprobado' : 'Reprobado' }}
+                                        </span>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+
+                        <!-- Promedio + estado académico -->
+                        <div class="mt-4 flex items-center justify-between rounded-lg bg-gray-50 px-4 py-3">
+                            <div>
+                                <p class="text-xs uppercase tracking-wide text-gray-400">Promedio general</p>
+                                <p class="text-2xl font-bold text-[#073b75]">{{ resultadoConsulta.promedio ?? '—' }}</p>
+                            </div>
+                            <span
+                                v-if="resultadoConsulta.estado_academico === 'aprobado'"
+                                class="inline-flex items-center gap-1.5 rounded-full bg-green-100 px-3 py-1.5 text-sm font-bold text-green-700"
+                            >
+                                <CheckCircle2 class="h-4 w-4" /> Aprobó el CUP
+                            </span>
+                            <span
+                                v-else
+                                class="inline-flex items-center gap-1.5 rounded-full bg-red-100 px-3 py-1.5 text-sm font-bold text-red-700"
+                            >
+                                <XCircle class="h-4 w-4" /> No aprobó
+                            </span>
+                        </div>
+
+                        <!-- Resultado de admisión -->
+                        <div
+                            class="mt-4 rounded-lg border p-4 text-center"
+                            :class="resultadoConsulta.estado_admision === 'admitido'
+                                ? 'border-green-200 bg-green-50'
+                                : resultadoConsulta.estado_admision === 'no_admitido'
+                                    ? 'border-red-200 bg-red-50'
+                                    : 'border-gray-200 bg-gray-50'"
+                        >
+                            <template v-if="resultadoConsulta.estado_admision === 'admitido'">
+                                <Award class="mx-auto mb-2 h-8 w-8 text-green-600" />
+                                <p class="text-base font-bold text-green-700">¡Felicidades! Fuiste admitido/a</p>
+                                <p class="mt-1 text-sm text-green-600">
+                                    Carrera asignada: <strong>{{ resultadoConsulta.carrera_asignada }}</strong>
+                                </p>
+                            </template>
+                            <template v-else-if="resultadoConsulta.estado_admision === 'no_admitido'">
+                                <p class="text-base font-bold text-red-700">No fuiste admitido/a en esta gestión</p>
+                                <p class="mt-1 text-xs text-red-600">
+                                    Postulaste a {{ resultadoConsulta.carrera1 }}<span v-if="resultadoConsulta.carrera2"> y {{ resultadoConsulta.carrera2 }}</span>.
+                                    Podés volver a intentarlo en la próxima convocatoria.
+                                </p>
+                            </template>
+                            <template v-else>
+                                <p class="text-sm font-medium text-gray-600">Tu resultado de admisión aún está en proceso.</p>
+                            </template>
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
     </section>
