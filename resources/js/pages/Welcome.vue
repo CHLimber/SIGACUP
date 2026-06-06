@@ -108,6 +108,24 @@ interface MateriaResultado {
     nota: number | null;
     aprobada: boolean;
 }
+
+interface GrupoBoleta {
+    codigo_materia: string;
+    nombre_materia: string | null;
+    grupo: string;
+    aplica_todos_dias: boolean;
+    dia: string | null;
+    hora_inicio: string | null;
+    hora_fin: string | null;
+}
+
+interface Boleta {
+    unidad_educativa: string | null;
+    tipo_colegio: string | null;
+    anio_egreso: number | null;
+    grupos: GrupoBoleta[];
+}
+
 interface ConsultaResultado {
     encontrado: boolean;
     ci: string;
@@ -122,6 +140,13 @@ interface ConsultaResultado {
     promedio?: number | null;
     estado_academico?: 'aprobado' | 'reprobado' | 'reprobado_materia' | null;
     nota_minima?: number;
+    boleta?: Boleta;
+}
+
+const diasSemana = ['LUN', 'MAR', 'MIER', 'JUE', 'VIE'] as const;
+
+function gruposDia(dia: string, boleta: Boleta): GrupoBoleta[] {
+    return boleta.grupos.filter(g => g.aplica_todos_dias || g.dia === dia);
 }
 
 const page = usePage();
@@ -626,7 +651,7 @@ function consultarNotas() {
             </form>
 
             <!-- Resultado -->
-            <div v-if="resultadoConsulta" class="mx-auto mt-8 max-w-xl">
+            <div v-if="resultadoConsulta" class="mx-auto mt-8 max-w-2xl">
                 <!-- No encontrado -->
                 <div
                     v-if="!resultadoConsulta.encontrado"
@@ -638,10 +663,118 @@ function consultarNotas() {
                 <!-- Encontrado -->
                 <div v-else class="overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm">
                     <!-- Cabecera -->
-                    <div class="px-6 py-5" style="background: linear-gradient(to right, #060041, #073b75);">
-                        <p class="text-xs uppercase tracking-widest text-blue-300">Resultado · Gestión {{ resultadoConsulta.gestion }}</p>
-                        <h3 class="mt-1 text-lg font-bold text-white">{{ resultadoConsulta.nombre }}</h3>
-                        <p class="text-xs text-blue-200">CI: {{ resultadoConsulta.ci }}</p>
+                    <div class="px-6 py-4" style="background: linear-gradient(to right, #060041, #073b75);">
+                        <p class="text-[10px] font-bold uppercase tracking-widest text-blue-300">
+                            BOLETA DE INSCRIPCIÓN WEB CUP · FAC. INGENIERÍA · FICCT
+                        </p>
+                        <p class="mt-0.5 text-xs uppercase tracking-widest text-blue-300">Gestión {{ resultadoConsulta.gestion }}</p>
+                    </div>
+
+                    <!-- Boleta de inscripción -->
+                    <div v-if="resultadoConsulta.boleta" class="border-b border-gray-100 bg-gray-50 px-6 py-4">
+
+                        <!-- Área -->
+                        <div class="mb-3">
+                            <span class="text-[10px] font-semibold uppercase tracking-wider text-gray-400">Área:</span>
+                            <p class="text-sm font-semibold text-[#073b75]">
+                                {{ resultadoConsulta.carrera1 ?? '—' }}
+                            </p>
+                        </div>
+
+                        <!-- Apellidos y Nombres | CI -->
+                        <div class="mb-2 grid grid-cols-3 gap-2">
+                            <div class="col-span-2 rounded border border-gray-200 bg-white px-3 py-1.5">
+                                <p class="text-[10px] font-semibold uppercase tracking-wider text-gray-400">Apellidos y Nombres</p>
+                                <p class="text-sm font-medium text-gray-800">{{ resultadoConsulta.nombre }}</p>
+                            </div>
+                            <div class="rounded border border-gray-200 bg-white px-3 py-1.5">
+                                <p class="text-[10px] font-semibold uppercase tracking-wider text-gray-400">C.I.</p>
+                                <p class="text-sm font-medium text-gray-800">{{ resultadoConsulta.ci }}</p>
+                            </div>
+                        </div>
+
+                        <!-- Unidad Educativa | Tipo -->
+                        <div class="mb-2 grid grid-cols-3 gap-2">
+                            <div class="col-span-2 rounded border border-gray-200 bg-white px-3 py-1.5">
+                                <p class="text-[10px] font-semibold uppercase tracking-wider text-gray-400">Nombre U.E.</p>
+                                <p class="text-sm font-medium text-gray-800">
+                                    {{ resultadoConsulta.boleta.unidad_educativa ?? '—' }}
+                                </p>
+                            </div>
+                            <div class="rounded border border-gray-200 bg-white px-3 py-1.5">
+                                <p class="text-[10px] font-semibold uppercase tracking-wider text-gray-400">U.E. Tipo</p>
+                                <p class="text-sm font-medium capitalize text-gray-800">
+                                    {{ resultadoConsulta.boleta.tipo_colegio ?? '—' }}
+                                </p>
+                            </div>
+                        </div>
+
+                        <!-- Carrera 1 | Carrera 2 -->
+                        <div class="mb-3 grid grid-cols-2 gap-2">
+                            <div class="rounded border border-gray-200 bg-white px-3 py-1.5">
+                                <p class="text-[10px] font-semibold uppercase tracking-wider text-gray-400">Carrera 1</p>
+                                <p class="text-sm font-medium text-gray-800">{{ resultadoConsulta.carrera1 ?? '—' }}</p>
+                            </div>
+                            <div class="rounded border border-gray-200 bg-white px-3 py-1.5">
+                                <p class="text-[10px] font-semibold uppercase tracking-wider text-gray-400">Carrera 2</p>
+                                <p class="text-sm font-medium text-gray-800">{{ resultadoConsulta.carrera2 ?? '—' }}</p>
+                            </div>
+                        </div>
+
+                        <!-- Tabla de horarios -->
+                        <div v-if="resultadoConsulta.boleta.grupos.length > 0" class="overflow-x-auto">
+                            <table class="w-full border-collapse text-xs">
+                                <thead>
+                                    <tr style="background: linear-gradient(to right, #060041, #073b75);" class="text-white">
+                                        <th class="border border-[#073b75]/30 px-2 py-1.5 text-center text-[10px] font-bold uppercase tracking-wide">Día</th>
+                                        <th class="border border-[#073b75]/30 px-2 py-1.5 text-center text-[10px] font-bold uppercase tracking-wide">Materia</th>
+                                        <th class="border border-[#073b75]/30 px-2 py-1.5 text-center text-[10px] font-bold uppercase tracking-wide">Grupo</th>
+                                        <th class="border border-[#073b75]/30 px-2 py-1.5 text-center text-[10px] font-bold uppercase tracking-wide">Horario</th>
+                                        <th class="border border-[#073b75]/30 px-2 py-1.5 text-center text-[10px] font-bold uppercase tracking-wide">Materia</th>
+                                        <th class="border border-[#073b75]/30 px-2 py-1.5 text-center text-[10px] font-bold uppercase tracking-wide">Grupo</th>
+                                        <th class="border border-[#073b75]/30 px-2 py-1.5 text-center text-[10px] font-bold uppercase tracking-wide">Horario</th>
+                                        <th class="border border-[#073b75]/30 px-2 py-1.5 text-center text-[10px] font-bold uppercase tracking-wide">Materia</th>
+                                        <th class="border border-[#073b75]/30 px-2 py-1.5 text-center text-[10px] font-bold uppercase tracking-wide">Grupo</th>
+                                        <th class="border border-[#073b75]/30 px-2 py-1.5 text-center text-[10px] font-bold uppercase tracking-wide">Horario</th>
+                                        <th class="border border-[#073b75]/30 px-2 py-1.5 text-center text-[10px] font-bold uppercase tracking-wide">Materia</th>
+                                        <th class="border border-[#073b75]/30 px-2 py-1.5 text-center text-[10px] font-bold uppercase tracking-wide">Grupo</th>
+                                        <th class="border border-[#073b75]/30 px-2 py-1.5 text-center text-[10px] font-bold uppercase tracking-wide">Horario</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr v-for="dia in diasSemana" :key="dia" class="even:bg-white odd:bg-gray-50">
+                                        <td class="border border-gray-200 px-2 py-1.5 text-center font-bold text-[#073b75]">
+                                            {{ dia }}
+                                        </td>
+                                        <template
+                                            v-for="(slot, idx) in gruposDia(dia, resultadoConsulta.boleta!)"
+                                            :key="idx"
+                                        >
+                                            <td class="border border-gray-200 px-2 py-1.5 text-center font-semibold text-gray-700">
+                                                {{ slot.codigo_materia }}
+                                            </td>
+                                            <td class="border border-gray-200 px-2 py-1.5 text-center text-gray-700">
+                                                {{ slot.grupo }}
+                                            </td>
+                                            <td class="border border-gray-200 px-2 py-1.5 text-center text-gray-600">
+                                                {{ slot.hora_inicio && slot.hora_fin ? `${slot.hora_inicio} - ${slot.hora_fin}` : '—' }}
+                                            </td>
+                                        </template>
+                                        <template
+                                            v-for="i in Math.max(0, 4 - gruposDia(dia, resultadoConsulta.boleta!).length)"
+                                            :key="`empty-${i}`"
+                                        >
+                                            <td class="border border-gray-200 px-2 py-1.5 text-center text-gray-300">—</td>
+                                            <td class="border border-gray-200 px-2 py-1.5 text-center text-gray-300">—</td>
+                                            <td class="border border-gray-200 px-2 py-1.5 text-center text-gray-300">—</td>
+                                        </template>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                        <p v-else class="mt-1 text-center text-xs text-gray-400">
+                            Aún no se han asignado grupos para esta postulación.
+                        </p>
                     </div>
 
                     <!-- Notas por materia -->

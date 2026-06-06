@@ -29,7 +29,11 @@ class ConsultaResultadoController extends Controller
 
         $postulacion = $persona
             ? Postulacion::whereHas('candidatoEstudiante', fn ($q) => $q->where('persona_id', $persona->id))
-                ->with(['gestion', 'carreraAsignada', 'carrera1', 'carrera2', 'evaluaciones', 'gestion.parametros'])
+                ->with([
+                    'gestion', 'carreraAsignada', 'carrera1', 'carrera2',
+                    'evaluaciones', 'gestion.parametros',
+                    'grupos.horario', 'grupos.materia',
+                ])
                 ->orderByDesc('gestion_id')
                 ->first()
             : null;
@@ -57,6 +61,24 @@ class ConsultaResultadoController extends Controller
             'promedio' => $notas['promedio'],
             'estado_academico' => $notas['estado'],
             'nota_minima' => $notas['nota_minima'],
+            'boleta' => [
+                'unidad_educativa' => $postulacion->unidad_educativa,
+                'tipo_colegio' => $postulacion->tipo_colegio,
+                'anio_egreso' => $postulacion->anio_egreso,
+                'grupos' => $postulacion->grupos->map(fn ($grupo) => [
+                    'codigo_materia' => $grupo->codigo_materia,
+                    'nombre_materia' => $grupo->materia?->nombre,
+                    'grupo' => $grupo->nombre,
+                    'aplica_todos_dias' => (bool) ($grupo->horario?->aplica_todos_dias ?? false),
+                    'dia' => $grupo->horario?->dia,
+                    'hora_inicio' => $grupo->horario?->hora_inicio
+                        ? substr((string) $grupo->horario->hora_inicio, 0, 5)
+                        : null,
+                    'hora_fin' => $grupo->horario?->hora_fin
+                        ? substr((string) $grupo->horario->hora_fin, 0, 5)
+                        : null,
+                ])->values()->all(),
+            ],
         ])->withFragment('notas');
     }
 }
