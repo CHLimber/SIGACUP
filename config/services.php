@@ -36,8 +36,14 @@ return [
     ],
 
     'stripe' => [
-        'key'    => env('STRIPE_PUBLISHABLE_KEY', env('STRIPE_KEY')),
+        'key' => env('STRIPE_PUBLISHABLE_KEY', env('STRIPE_KEY')),
         'secret' => env('STRIPE_SECRET_KEY', env('STRIPE_SECRET')),
+    ],
+
+    'anthropic' => [
+        'key' => env('ANTHROPIC_API_KEY'),
+        'model' => env('ANTHROPIC_MODEL', 'claude-haiku-4-5-20251001'),
+        'version' => env('ANTHROPIC_VERSION', '2023-06-01'),
     ],
 
 ];

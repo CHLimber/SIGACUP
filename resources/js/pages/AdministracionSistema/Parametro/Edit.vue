@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { Head, Link, useForm } from '@inertiajs/vue3';
-import { computed } from 'vue';
 import { Check, X } from 'lucide-vue-next';
+import { computed } from 'vue';
 import { dashboard } from '@/routes';
 
 interface Gestion {

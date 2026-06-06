@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { Head, Link, router, useForm } from '@inertiajs/vue3';
-import { computed } from 'vue';
 import { Check, X } from 'lucide-vue-next';
+import { computed } from 'vue';
 import { dashboard } from '@/routes';
 
 interface Gestion {
@@ -15,9 +15,16 @@ interface Gestion {
     fecha_fin_cursado: string | null;
 }
 
+interface Carrera {
+    id: number;
+    nombre: string;
+}
+
 const props = defineProps<{
     gestion: Gestion;
     parametros: Record<string, string>;
+    carreras: Carrera[];
+    cupos: Record<string, number>;
 }>();
 
 defineOptions({
@@ -60,6 +67,9 @@ const form = useForm({
     peso_examen_2:            Number(props.parametros.peso_examen_2          ?? 30),
     peso_examen_3:            Number(props.parametros.peso_examen_3          ?? 40),
     nota_minima_aprobacion:   Number(props.parametros.nota_minima_aprobacion ?? 60),
+    cupos:                    Object.fromEntries(
+        props.carreras.map((c) => [c.id, Number(props.cupos?.[c.id] ?? 0)]),
+    ) as Record<number, number>,
 });
 
 const sumaPesos = computed(() =>
@@ -73,8 +83,15 @@ function submit() {
 
 function avanzar() {
     const label = nextLabel[props.gestion.estado];
-    if (!label) return;
-    if (!confirm(`¿Avanzar la gestión ${props.gestion.anio}-${props.gestion.semestre} al estado "${label}"?\n\nEsta acción no se puede deshacer.`)) return;
+
+    if (!label) {
+return;
+}
+
+    if (!confirm(`¿Avanzar la gestión ${props.gestion.anio}-${props.gestion.semestre} al estado "${label}"?\n\nEsta acción no se puede deshacer.`)) {
+return;
+}
+
     router.patch(`/administracion/gestiones/${props.gestion.id}/avanzar`);
 }
 </script>
@@ -359,6 +376,34 @@ function avanzar() {
                         <p v-if="form.errors.nota_minima_aprobacion" class="text-xs text-red-600">
                             {{ form.errors.nota_minima_aprobacion }}
                         </p>
+                    </div>
+                </div>
+
+                <!-- ── Cupos por carrera ── -->
+                <div class="border-y border-gray-100 px-6 py-3" style="background-color: #073b75;">
+                    <h2 class="text-sm font-semibold uppercase tracking-wider text-white">Cupos por Carrera</h2>
+                </div>
+                <div class="p-6">
+                    <p class="mb-4 text-xs text-gray-500">
+                        Cantidad máxima de estudiantes admitidos por carrera en el proceso de admisión.
+                    </p>
+                    <div class="grid grid-cols-2 gap-4">
+                        <div v-for="carrera in carreras" :key="carrera.id" class="flex flex-col gap-1.5">
+                            <label :for="`cupo_${carrera.id}`" class="text-sm font-medium text-gray-700">
+                                {{ carrera.nombre }}
+                            </label>
+                            <div class="flex items-center gap-2">
+                                <input
+                                    :id="`cupo_${carrera.id}`"
+                                    v-model="form.cupos[carrera.id]"
+                                    type="number"
+                                    min="0"
+                                    max="10000"
+                                    class="w-28 rounded-md border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 shadow-sm focus:outline-none focus:ring-2 focus:ring-[#073b75]"
+                                />
+                                <span class="text-sm text-gray-500">cupos</span>
+                            </div>
+                        </div>
                     </div>
                 </div>
 

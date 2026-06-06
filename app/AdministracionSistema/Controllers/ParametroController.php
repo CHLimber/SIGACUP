@@ -16,7 +16,7 @@ class ParametroController extends Controller
         $parametros = $gestion->parametros->pluck('valor', 'clave');
 
         return Inertia::render('AdministracionSistema/Parametro/Edit', [
-            'gestion'    => $gestion->only('id', 'anio', 'semestre', 'estado'),
+            'gestion' => $gestion->only('id', 'anio', 'semestre', 'estado'),
             'parametros' => $parametros,
         ]);
     }

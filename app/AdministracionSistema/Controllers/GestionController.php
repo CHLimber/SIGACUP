@@ -2,10 +2,12 @@
 
 namespace App\AdministracionSistema\Controllers;
 
+use App\AdministracionSistema\Models\Carrera;
 use App\AdministracionSistema\Models\Gestion;
 use App\AdministracionSistema\Models\Parametro;
 use App\AdministracionSistema\Requests\StoreGestionRequest;
 use App\AdministracionSistema\Requests\UpdateGestionRequest;
+use App\EvaluacionAdmision\Actions\CompletarNotasFaltantes;
 use App\Http\Controllers\Controller;
 use Illuminate\Database\QueryException;
 use Illuminate\Http\RedirectResponse;
@@ -19,10 +21,10 @@ class GestionController extends Controller
 
     private const ESTADO_LABELS = [
         'configuracion' => 'Configuración',
-        'inscripcion'   => 'Inscripción',
-        'cursado'       => 'Cursado',
-        'admision'      => 'Admisión',
-        'cerrada'       => 'Cerrada',
+        'inscripcion' => 'Inscripción',
+        'cursado' => 'Cursado',
+        'admision' => 'Admisión',
+        'cerrada' => 'Cerrada',
     ];
 
     private const PARAM_CLAVES = [
@@ -48,22 +50,33 @@ class GestionController extends Controller
 
     public function create(): Response
     {
-        return Inertia::render('AdministracionSistema/Gestion/Create');
+        return Inertia::render('AdministracionSistema/Gestion/Create', [
+            'carreras' => Carrera::orderBy('nombre')->get(['id', 'nombre']),
+        ]);
     }
 
     public function store(StoreGestionRequest $request): RedirectResponse
     {
         $validated = $request->validated();
+        $cupos = $validated['cupos'] ?? [];
 
-        $gestion = Gestion::create(collect($validated)->except(self::PARAM_CLAVES)->all());
+        $gestion = DB::transaction(function () use ($validated, $cupos) {
+            $gestion = Gestion::create(
+                collect($validated)->except([...self::PARAM_CLAVES, 'cupos'])->all()
+            );
 
-        foreach (self::PARAM_CLAVES as $clave) {
-            Parametro::create([
-                'gestion_id' => $gestion->id,
-                'clave'      => $clave,
-                'valor'      => (string) $validated[$clave],
-            ]);
-        }
+            foreach (self::PARAM_CLAVES as $clave) {
+                Parametro::create([
+                    'gestion_id' => $gestion->id,
+                    'clave' => $clave,
+                    'valor' => (string) $validated[$clave],
+                ]);
+            }
+
+            $this->guardarCupos($gestion, $cupos);
+
+            return $gestion;
+        });
 
         return redirect()->route('gestiones.index')
             ->with('flash', ['type' => 'success', 'message' => "Gestión {$gestion->label} creada correctamente."]);
@@ -72,26 +85,50 @@ class GestionController extends Controller
     public function edit(Gestion $gestion): Response
     {
         return Inertia::render('AdministracionSistema/Gestion/Edit', [
-            'gestion'    => $gestion,
+            'gestion' => $gestion,
             'parametros' => $gestion->parametros->pluck('valor', 'clave'),
+            'carreras' => Carrera::orderBy('nombre')->get(['id', 'nombre']),
+            'cupos' => $gestion->cupos->pluck('cupo_max', 'carrera_id'),
         ]);
     }
 
     public function update(UpdateGestionRequest $request, Gestion $gestion): RedirectResponse
     {
         $validated = $request->validated();
+        $cupos = $validated['cupos'] ?? [];
 
-        $gestion->update(collect($validated)->except(self::PARAM_CLAVES)->all());
-
-        foreach (self::PARAM_CLAVES as $clave) {
-            $gestion->parametros()->updateOrCreate(
-                ['clave' => $clave],
-                ['valor' => (string) $validated[$clave]],
+        DB::transaction(function () use ($validated, $cupos, $gestion) {
+            $gestion->update(
+                collect($validated)->except([...self::PARAM_CLAVES, 'cupos'])->all()
             );
-        }
+
+            foreach (self::PARAM_CLAVES as $clave) {
+                $gestion->parametros()->updateOrCreate(
+                    ['clave' => $clave],
+                    ['valor' => (string) $validated[$clave]],
+                );
+            }
+
+            $this->guardarCupos($gestion, $cupos);
+        });
 
         return redirect()->route('gestiones.index')
             ->with('flash', ['type' => 'success', 'message' => "Gestión {$gestion->label} actualizada correctamente."]);
+    }
+
+    /**
+     * Persiste los cupos por carrera de una gestión.
+     *
+     * @param  array<int|string, int|string>  $cupos  carrera_id => cupo_max
+     */
+    private function guardarCupos(Gestion $gestion, array $cupos): void
+    {
+        foreach ($cupos as $carreraId => $cupoMax) {
+            $gestion->cupos()->updateOrCreate(
+                ['carrera_id' => (int) $carreraId],
+                ['cupo_max' => (int) $cupoMax],
+            );
+        }
     }
 
     public function destroy(Gestion $gestion): RedirectResponse
@@ -112,7 +149,7 @@ class GestionController extends Controller
             ->with('flash', ['type' => 'success', 'message' => "Gestión {$label} eliminada."]);
     }
 
-    public function avanzar(Gestion $gestion): RedirectResponse
+    public function avanzar(Gestion $gestion, CompletarNotasFaltantes $completar): RedirectResponse
     {
         $idx = array_search($gestion->estado, self::ESTADOS);
 
@@ -124,9 +161,18 @@ class GestionController extends Controller
         $gestion->update(['estado' => $nuevoEstado]);
 
         $label = self::ESTADO_LABELS[$nuevoEstado];
+        $mensaje = "Gestión {$gestion->label} avanzó a: {$label}.";
+
+        if ($nuevoEstado === 'admision') {
+            $creadas = $completar($gestion);
+
+            if ($creadas > 0) {
+                $mensaje .= " Se completaron con nota 0 un total de {$creadas} evaluación(es) faltante(s).";
+            }
+        }
 
         return redirect()->route('gestiones.index')
-            ->with('flash', ['type' => 'success', 'message' => "Gestión {$gestion->label} avanzó a: {$label}."]);
+            ->with('flash', ['type' => 'success', 'message' => $mensaje]);
     }
 
     public function retroceder(Gestion $gestion): RedirectResponse

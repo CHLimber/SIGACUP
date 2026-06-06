@@ -24,7 +24,7 @@ class FortifyServiceProvider extends ServiceProvider
 
     private function configureActions(): void
     {
-        Fortify::authenticateUsing(new AutenticarUsuario());
+        Fortify::authenticateUsing(new AutenticarUsuario);
     }
 
     private function configureViews(): void

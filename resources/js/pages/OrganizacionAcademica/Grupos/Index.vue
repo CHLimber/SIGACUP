@@ -1,9 +1,8 @@
 <script setup lang="ts">
 import { Head, Link, router } from '@inertiajs/vue3';
+import { AlertTriangle, Users } from 'lucide-vue-next';
 import { computed, ref } from 'vue';
-import { dashboard } from '@/routes';
 import { Button } from '@/components/ui/button';
-import { AlertTriangle } from 'lucide-vue-next';
 import {
     Dialog,
     DialogContent,
@@ -12,6 +11,7 @@ import {
     DialogHeader,
     DialogTitle,
 } from '@/components/ui/dialog';
+import { dashboard } from '@/routes';
 
 interface Gestion {
     id: number;
@@ -61,7 +61,9 @@ function ejecutarGenerar() {
     router.post(
         `/administracion/grupos/${props.gestion.id}/generar`,
         {},
-        { onFinish: () => { procesando.value = false; } },
+        { onFinish: () => {
+ procesando.value = false; 
+} },
     );
 }
 
@@ -80,13 +82,22 @@ const puedeGenerar = computed(() =>
     <div class="flex flex-col gap-6 p-6">
 
         <!-- Encabezado -->
-        <div>
-            <h1 class="text-2xl font-bold text-gray-900">
-                Grupos — {{ gestion.anio }} {{ labelSemestre }}
-            </h1>
-            <p class="mt-0.5 text-sm text-gray-500">
-                Distribución automática de postulantes en grupos de cursado.
-            </p>
+        <div class="flex flex-wrap items-start justify-between gap-4">
+            <div>
+                <h1 class="text-2xl font-bold text-gray-900">
+                    Grupos — {{ gestion.anio }} {{ labelSemestre }}
+                </h1>
+                <p class="mt-0.5 text-sm text-gray-500">
+                    Distribución automática de postulantes en grupos de cursado.
+                </p>
+            </div>
+            <Link
+                v-if="yaExisten"
+                :href="`/administracion/grupos/${gestion.id}/asignar-docentes`"
+                class="inline-flex items-center gap-1.5 rounded-md border border-[#073b75] px-3 py-2 text-sm font-semibold text-[#073b75] transition hover:bg-[#073b75]/5"
+            >
+                <Users class="h-4 w-4" /> Asignar docentes
+            </Link>
         </div>
 
         <!-- Tarjetas de resumen -->
@@ -126,7 +137,6 @@ const puedeGenerar = computed(() =>
                     <tr style="background-color: #060041;">
                         <th class="px-5 py-3.5 text-left text-xs font-semibold uppercase tracking-wider text-white">Grupo</th>
                         <th class="px-5 py-3.5 text-left text-xs font-semibold uppercase tracking-wider text-white">Postulantes asignados</th>
-                        <th class="px-5 py-3.5 text-left text-xs font-semibold uppercase tracking-wider text-white">Estado</th>
                         <th class="px-5 py-3.5 text-right text-xs font-semibold uppercase tracking-wider text-white">Acción</th>
                     </tr>
                 </thead>
@@ -152,11 +162,6 @@ const puedeGenerar = computed(() =>
                                 <span class="text-gray-700 font-medium">{{ g.estudiantes }}</span>
                                 <span class="text-gray-400 text-xs">/ {{ capacidadMax }}</span>
                             </div>
-                        </td>
-                        <td class="px-5 py-4">
-                            <span class="inline-flex rounded-full bg-yellow-100 px-2.5 py-0.5 text-xs font-semibold text-yellow-700">
-                                Sin horario asignado
-                            </span>
                         </td>
                         <td class="px-5 py-4 text-right">
                             <Link

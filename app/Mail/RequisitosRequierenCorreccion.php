@@ -2,7 +2,7 @@
 
 namespace App\Mail;
 
-use App\RegistroPublico\Catalogos\RequisitosCatalogo;
+use App\RegistroInscripcion\Catalogos\RequisitosCatalogo;
 use Illuminate\Bus\Queueable;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Model;
@@ -31,8 +31,8 @@ class RequisitosRequierenCorreccion extends Mailable
             $def = RequisitosCatalogo::definicion($this->candidato, $archivo->codigo);
 
             return [
-                'nombre'  => $def['nombre'] ?? $archivo->codigo,
-                'motivo'  => $archivo->motivo_rechazo,
+                'nombre' => $def['nombre'] ?? $archivo->codigo,
+                'motivo' => $archivo->motivo_rechazo,
             ];
         })->all();
 
@@ -40,7 +40,7 @@ class RequisitosRequierenCorreccion extends Mailable
             view: 'emails.requisitos-requieren-correccion',
             with: [
                 'candidato' => $this->candidato,
-                'items'     => $items,
+                'items' => $items,
                 'portalUrl' => route('portal.candidato.show', ['token' => $this->candidato->token_acceso]),
             ],
         );

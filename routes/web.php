@@ -2,45 +2,55 @@
 
 use App\AdministracionSistema\Models\Carrera;
 use App\AdministracionSistema\Models\Gestion;
-use App\GestionEstudiantes\Models\Postulacion;
-use App\InscripcionPagos\Controllers\PortalPagoController;
-use App\RegistroPublico\Controllers\PortalCandidatoController;
-use App\RegistroPublico\Controllers\RegistroController;
+use App\AdministracionSistema\Models\Materia;
+use App\OrganizacionAcademica\Models\Grupo;
+use App\RegistroInscripcion\Controllers\ConsultaResultadoController;
+use App\RegistroInscripcion\Controllers\PortalCandidatoController;
+use App\RegistroInscripcion\Controllers\PortalPagoController;
+use App\RegistroInscripcion\Controllers\RegistroController;
+use App\RegistroInscripcion\Models\CandidatoEstudiante;
+use App\RegistroInscripcion\Models\Pago;
+use App\RegistroInscripcion\Models\Postulacion;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 
-function gestionActiva(): ?Gestion
-{
-    return Gestion::where('estado', '!=', 'cerrada')
-        ->orderByDesc('anio')
-        ->orderByDesc('semestre')
-        ->with('parametros')
-        ->first();
+// Los guards function_exists evitan el "Cannot redeclare" cuando el archivo de
+// rutas se carga más de una vez (p. ej. al recrear la app entre tests).
+if (! function_exists('gestionActiva')) {
+    function gestionActiva(): ?Gestion
+    {
+        return Gestion::where('estado', '!=', 'cerrada')
+            ->orderByDesc('anio')
+            ->orderByDesc('semestre')
+            ->with('parametros')
+            ->first();
+    }
 }
 
-function propsGestion(?Gestion $g): array
-{
-    return [
-        'nota_minima'    => (int) ($g?->parametro('nota_minima_aprobacion') ?? 60),
-        'peso1'          => (int) ($g?->parametro('peso_examen_1') ?? 30),
-        'peso2'          => (int) ($g?->parametro('peso_examen_2') ?? 30),
-        'peso3'          => (int) ($g?->parametro('peso_examen_3') ?? 40),
-        'gestion_label'  => $g ? "{$g->anio} · " . ($g->semestre === 1 ? '1er Semestre' : '2do Semestre') : null,
-        'gestion_estado' => $g?->estado,
-    ];
+if (! function_exists('propsGestion')) {
+    function propsGestion(?Gestion $g): array
+    {
+        return [
+            'nota_minima' => (int) ($g?->parametro('nota_minima_aprobacion') ?? 60),
+            'peso1' => (int) ($g?->parametro('peso_examen_1') ?? 30),
+            'peso2' => (int) ($g?->parametro('peso_examen_2') ?? 30),
+            'peso3' => (int) ($g?->parametro('peso_examen_3') ?? 40),
+            'gestion_label' => $g ? "{$g->anio} · ".($g->semestre === 1 ? '1er Semestre' : '2do Semestre') : null,
+            'gestion_estado' => $g?->estado,
+        ];
+    }
 }
 
 Route::get('/', function () {
     $gestion = gestionActiva();
 
-    return Inertia::render('Welcome', array_merge(
-        propsGestion($gestion),
-        ['carreras' => Carrera::orderBy('nombre')->get(['id', 'nombre'])],
-    ));
+    return Inertia::render('Welcome', propsGestion($gestion));
 })->name('home');
 
 Route::post('/registro/estudiante', [RegistroController::class, 'storeCandidatoEstudiante'])->name('registro.estudiante');
 Route::post('/registro/docente', [RegistroController::class, 'storeCandidatoDocente'])->name('registro.docente');
+
+Route::post('/consulta/resultados', [ConsultaResultadoController::class, 'consultar'])->name('consulta.resultados');
 
 Route::prefix('candidato/{token}')->name('portal.candidato.')->group(function () {
     Route::get('requisitos', [PortalCandidatoController::class, 'show'])->name('show');
@@ -48,6 +58,7 @@ Route::prefix('candidato/{token}')->name('portal.candidato.')->group(function ()
     Route::delete('requisitos/{codigo}', [PortalCandidatoController::class, 'eliminar'])->name('eliminar');
     Route::get('requisitos/{codigo}/descargar', [PortalCandidatoController::class, 'descargar'])->name('descargar');
     Route::post('datos-profesionales', [PortalCandidatoController::class, 'guardarDatosProfesionales'])->name('datos-profesionales');
+    Route::post('datos-academicos', [PortalCandidatoController::class, 'guardarDatosAcademicos'])->name('datos-academicos');
     Route::post('enviar', [PortalCandidatoController::class, 'enviar'])->name('enviar');
 });
 
@@ -61,14 +72,31 @@ Route::prefix('matricula/{token}')->name('portal.matricula.')->group(function ()
 Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('dashboard', function () {
         $gestion = gestionActiva();
+        $gid = $gestion?->id;
 
-        $candidatos = $gestion
-            ? Postulacion::where('gestion_id', $gestion->id)->count()
-            : 0;
+        $pagosCompletados = $gid
+            ? Pago::where('estado', Pago::ESTADO_COMPLETADO)
+                ->whereHas('postulacion', fn ($q) => $q->where('gestion_id', $gid))
+            : null;
+
+        $metricas = [
+            'postulaciones' => $gid ? Postulacion::where('gestion_id', $gid)->count() : 0,
+            'admitidos' => $gid ? Postulacion::where('gestion_id', $gid)->where('estado_admision', Postulacion::ADMISION_ADMITIDO)->count() : 0,
+            'por_revisar' => CandidatoEstudiante::whereIn('estado', [
+                CandidatoEstudiante::ESTADO_PENDIENTE,
+                CandidatoEstudiante::ESTADO_EN_REVISION,
+            ])->count(),
+            'pagos' => $pagosCompletados ? (clone $pagosCompletados)->count() : 0,
+            'monto_recaudado' => $pagosCompletados ? (float) (clone $pagosCompletados)->sum('monto_bs') : 0.0,
+            'grupos' => $gid ? Grupo::where('gestion_id', $gid)->count() : 0,
+            'carreras' => Carrera::count(),
+            'materias' => Materia::count(),
+            'carreras_nombres' => Carrera::orderBy('nombre')->pluck('nombre')->all(),
+        ];
 
         return Inertia::render('Dashboard', array_merge(
             propsGestion($gestion),
-            ['candidatos' => $candidatos],
+            ['metricas' => $metricas],
         ));
     })->name('dashboard');
 });

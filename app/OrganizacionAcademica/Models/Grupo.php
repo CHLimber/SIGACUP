@@ -4,13 +4,18 @@ namespace App\OrganizacionAcademica\Models;
 
 use App\AdministracionSistema\Models\Gestion;
 use App\AdministracionSistema\Models\Materia;
-use App\GestionEstudiantes\Models\Postulacion;
+use App\RegistroInscripcion\Models\Postulacion;
+use App\SeguridadAcceso\Concerns\RegistraBitacora;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 
 class Grupo extends Model
 {
+    use RegistraBitacora;
+
+    protected string $bitacoraEtiqueta = 'Grupo';
+
     protected $table = 'grupo';
 
     protected $fillable = [
@@ -40,6 +45,12 @@ class Grupo extends Model
     public function postulaciones(): BelongsToMany
     {
         return $this->belongsToMany(Postulacion::class, 'asignacion_grupo', 'grupo_id', 'postulacion_id')
+            ->withTimestamps();
+    }
+
+    public function docentes(): BelongsToMany
+    {
+        return $this->belongsToMany(Docente::class, 'docente_grupo', 'grupo_id', 'docente_id')
             ->withTimestamps();
     }
 }

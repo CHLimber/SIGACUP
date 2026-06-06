@@ -14,35 +14,36 @@ class DatabaseSeeder extends Seeder
     public function run(): void
     {
         $this->call(CatalogosSeeder::class);
+        $this->call(RolesPermisosSeeder::class);
 
         $users = [
             [
-                'name'     => 'Administrador FICCT',
+                'name' => 'Administrador FICCT',
                 'username' => 'admin',
-                'email'    => 'admin@ficct.edu.bo',
+                'email' => 'admin@ficct.edu.bo',
                 'password' => 'Admin1234!',
-                'role'     => UserRole::Administrador,
+                'role' => UserRole::Administrador,
             ],
             [
-                'name'     => 'Coordinador CUP',
+                'name' => 'Coordinador CUP',
                 'username' => 'coordinador',
-                'email'    => 'coordinador@ficct.edu.bo',
+                'email' => 'coordinador@ficct.edu.bo',
                 'password' => 'Coord1234!',
-                'role'     => UserRole::Coordinador,
+                'role' => UserRole::Coordinador,
             ],
             [
-                'name'     => 'Docente Ejemplo',
+                'name' => 'Docente Ejemplo',
                 'username' => 'docente',
-                'email'    => 'docente@ficct.edu.bo',
+                'email' => 'docente@ficct.edu.bo',
                 'password' => 'Docente1234!',
-                'role'     => UserRole::Docente,
+                'role' => UserRole::Docente,
             ],
             [
-                'name'     => 'Autoridad FICCT',
+                'name' => 'Autoridad FICCT',
                 'username' => 'autoridad',
-                'email'    => 'autoridad@ficct.edu.bo',
+                'email' => 'autoridad@ficct.edu.bo',
                 'password' => 'Autor1234!',
-                'role'     => UserRole::Autoridad,
+                'role' => UserRole::Autoridad,
             ],
         ];
 
@@ -50,13 +51,22 @@ class DatabaseSeeder extends Seeder
             User::firstOrCreate(
                 ['username' => $data['username']],
                 [
-                    'name'              => $data['name'],
-                    'email'             => $data['email'],
-                    'password'          => $data['password'],
-                    'role'              => $data['role'],
+                    'name' => $data['name'],
+                    'email' => $data['email'],
+                    'password' => $data['password'],
+                    'role' => $data['role'],
                     'email_verified_at' => now(),
                 ],
             );
         }
+
+        // Datos de gestiones para reportes y comparativas (brief: ≥ 3 gestiones).
+        // Tras correr, la gestión activa es 2026-1 (estado «admision»); el resto, cerradas.
+        $this->call([
+            Gestion2024_2Seeder::class,
+            Gestion2025_1Seeder::class,
+            Gestion2025_2Seeder::class,
+            Gestion2026_1Seeder::class,
+        ]);
     }
 }

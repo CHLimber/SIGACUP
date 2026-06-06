@@ -1,8 +1,8 @@
 <script setup lang="ts">
 import { Head, Link, router } from '@inertiajs/vue3';
 import { computed, ref } from 'vue';
-import { dashboard } from '@/routes';
 import { Button } from '@/components/ui/button';
+import { dashboard } from '@/routes';
 
 interface Gestion {
     id: number;
@@ -90,7 +90,9 @@ function guardar() {
             onError: (errs) => {
                 errorMsg.value = Object.values(errs)[0] as string || 'Error al guardar.';
             },
-            onFinish: () => { procesando.value = false; },
+            onFinish: () => {
+ procesando.value = false; 
+},
         },
     );
 }

@@ -56,31 +56,55 @@ const prevLabel: Partial<Record<Gestion['estado'], string>> = {
 
 function avanzar(g: Gestion) {
     const label = nextLabel[g.estado];
-    if (!label) return;
-    if (!confirm(`¿Avanzar la gestión ${g.anio}-${g.semestre} al estado "${label}"?\n\nEsta acción no se puede deshacer.`)) return;
+
+    if (!label) {
+return;
+}
+
+    if (!confirm(`¿Avanzar la gestión ${g.anio}-${g.semestre} al estado "${label}"?\n\nEsta acción no se puede deshacer.`)) {
+return;
+}
+
     router.patch(`/administracion/gestiones/${g.id}/avanzar`);
 }
 
 function retroceder(g: Gestion) {
     const label = prevLabel[g.estado];
-    if (!label) return;
-    if (!confirm(`¿Retroceder la gestión ${g.anio}-${g.semestre} al estado "${label}"?\n\nÚsalo solo para corregir un avance hecho por error. Los datos generados durante la etapa actual podrían quedar inconsistentes.`)) return;
+
+    if (!label) {
+return;
+}
+
+    if (!confirm(`¿Retroceder la gestión ${g.anio}-${g.semestre} al estado "${label}"?\n\nÚsalo solo para corregir un avance hecho por error. Los datos generados durante la etapa actual podrían quedar inconsistentes.`)) {
+return;
+}
+
     router.patch(`/administracion/gestiones/${g.id}/retroceder`);
 }
 
 function eliminar(g: Gestion) {
-    if (!confirm(`¿Eliminar la gestión ${g.anio}-${g.semestre === 1 ? '1er' : '2do'} Semestre?\n\nSe eliminarán también sus parámetros. Esta acción no se puede deshacer.`)) return;
+    if (!confirm(`¿Eliminar la gestión ${g.anio}-${g.semestre === 1 ? '1er' : '2do'} Semestre?\n\nSe eliminarán también sus parámetros. Esta acción no se puede deshacer.`)) {
+return;
+}
+
     router.delete(`/administracion/gestiones/${g.id}`);
 }
 
 const MESES = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic'];
 
 function fmt(fecha: string | null): string {
-    if (!fecha) return '—';
+    if (!fecha) {
+return '—';
+}
+
     const soloFecha = fecha.split('T')[0];
     const [y, m, d] = soloFecha.split('-');
     const mesIdx = Number(m) - 1;
-    if (!y || !d || Number.isNaN(mesIdx) || !MESES[mesIdx]) return soloFecha;
+
+    if (!y || !d || Number.isNaN(mesIdx) || !MESES[mesIdx]) {
+return soloFecha;
+}
+
     return `${Number(d)} ${MESES[mesIdx]} ${y}`;
 }
 </script>

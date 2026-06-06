@@ -139,6 +139,7 @@
     @php
         $persona   = $pago->postulacion->candidatoEstudiante->persona;
         $carrera1  = $pago->postulacion->carrera1;
+        $carrera2  = $pago->postulacion->carrera2;
     @endphp
 
     <div class="factura">
@@ -175,7 +176,11 @@
             </div>
             <div class="fila">
                 <span class="label">Carrera (1ra opción)</span>
-                <span class="valor">{{ $carrera1?->nombre }}</span>
+                <span class="valor">{{ $carrera1?->nombre ?? '—' }}</span>
+            </div>
+            <div class="fila">
+                <span class="label">Carrera (2da opción)</span>
+                <span class="valor">{{ $carrera2?->nombre ?? '—' }}</span>
             </div>
         </div>
 

@@ -2,6 +2,8 @@
 
 namespace App\AdministracionSistema\Models;
 
+use App\RegistroInscripcion\Models\Postulacion;
+use App\SeguridadAcceso\Concerns\RegistraBitacora;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -17,23 +19,37 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 ])]
 class Gestion extends Model
 {
+    use RegistraBitacora;
+
+    protected string $bitacoraEtiqueta = 'Gestión';
+
     protected $table = 'gestion';
 
     protected function casts(): array
     {
         return [
-            'anio'                    => 'integer',
-            'semestre'                => 'integer',
+            'anio' => 'integer',
+            'semestre' => 'integer',
             'fecha_inicio_inscripcion' => 'date',
-            'fecha_fin_inscripcion'   => 'date',
-            'fecha_inicio_cursado'    => 'date',
-            'fecha_fin_cursado'       => 'date',
+            'fecha_fin_inscripcion' => 'date',
+            'fecha_inicio_cursado' => 'date',
+            'fecha_fin_cursado' => 'date',
         ];
     }
 
     public function parametros(): HasMany
     {
         return $this->hasMany(Parametro::class, 'gestion_id');
+    }
+
+    public function cupos(): HasMany
+    {
+        return $this->hasMany(CupoCarrera::class, 'gestion_id');
+    }
+
+    public function postulaciones(): HasMany
+    {
+        return $this->hasMany(Postulacion::class, 'gestion_id');
     }
 
     /** Devuelve el valor de un parámetro por clave, o $default si no existe. */
