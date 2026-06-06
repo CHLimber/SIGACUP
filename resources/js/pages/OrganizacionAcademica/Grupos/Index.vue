@@ -45,6 +45,7 @@ defineOptions({
 
 const yaExisten    = computed(() => props.grupos.length > 0);
 const confirmar    = ref(false);
+const confirmarLimpiar = ref(false);
 const procesando   = ref(false);
 
 function solicitarGenerar() {
@@ -61,9 +62,16 @@ function ejecutarGenerar() {
     router.post(
         `/administracion/grupos/${props.gestion.id}/generar`,
         {},
-        { onFinish: () => {
- procesando.value = false; 
-} },
+        { onFinish: () => { procesando.value = false; } },
+    );
+}
+
+function ejecutarLimpiar() {
+    confirmarLimpiar.value = false;
+    procesando.value = true;
+    router.delete(
+        `/administracion/grupos/${props.gestion.id}/limpiar`,
+        { onFinish: () => { procesando.value = false; } },
     );
 }
 
@@ -189,7 +197,16 @@ const puedeGenerar = computed(() =>
         </div>
 
         <!-- Botón de acción -->
-        <div v-if="puedeGenerar" class="flex justify-end">
+        <div v-if="puedeGenerar" class="flex items-center justify-end gap-3">
+            <Button
+                v-if="yaExisten"
+                variant="outline"
+                class="border-red-300 text-red-600 hover:bg-red-50"
+                :disabled="procesando"
+                @click="confirmarLimpiar = true"
+            >
+                {{ procesando ? 'Eliminando…' : 'Limpiar todos los grupos' }}
+            </Button>
             <Button
                 v-if="!yaExisten"
                 :disabled="procesando || nCalculado === 0"
@@ -202,7 +219,7 @@ const puedeGenerar = computed(() =>
             <Button
                 v-else
                 variant="outline"
-                class="border-red-300 text-red-600 hover:bg-red-50"
+                class="border-[#073b75] text-[#073b75] hover:bg-[#073b75]/5"
                 :disabled="procesando || nCalculado === 0"
                 @click="solicitarGenerar"
             >
@@ -224,6 +241,24 @@ const puedeGenerar = computed(() =>
             <DialogFooter>
                 <Button variant="outline" @click="confirmar = false">Cancelar</Button>
                 <Button variant="destructive" @click="ejecutarGenerar">Sí, regenerar</Button>
+            </DialogFooter>
+        </DialogContent>
+    </Dialog>
+
+    <!-- Diálogo de confirmación para limpiar -->
+    <Dialog :open="confirmarLimpiar" @update:open="v => !v && (confirmarLimpiar = false)">
+        <DialogContent>
+            <DialogHeader>
+                <DialogTitle>¿Eliminar todos los grupos?</DialogTitle>
+                <DialogDescription>
+                    Esto borrará los <strong>{{ grupos.length }}</strong> grupo(s), sus asignaciones de
+                    estudiantes y sus asignaciones de docentes. Quedará como si nunca se hubieran generado.
+                    Esta acción no se puede deshacer.
+                </DialogDescription>
+            </DialogHeader>
+            <DialogFooter>
+                <Button variant="outline" @click="confirmarLimpiar = false">Cancelar</Button>
+                <Button variant="destructive" @click="ejecutarLimpiar">Sí, eliminar todo</Button>
             </DialogFooter>
         </DialogContent>
     </Dialog>

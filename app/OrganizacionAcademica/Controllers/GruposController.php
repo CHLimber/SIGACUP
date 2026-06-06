@@ -250,6 +250,29 @@ class GruposController extends Controller
         return null;
     }
 
+    public function limpiar(Gestion $gestion): RedirectResponse
+    {
+        $ids = Grupo::where('gestion_id', $gestion->id)->pluck('id');
+
+        if ($ids->isEmpty()) {
+            return back()->with('flash', [
+                'type' => 'info',
+                'message' => 'No hay grupos que eliminar en esta gestión.',
+            ]);
+        }
+
+        DB::transaction(function () use ($ids) {
+            DB::table('asignacion_grupo')->whereIn('grupo_id', $ids)->delete();
+            DB::table('docente_grupo')->whereIn('grupo_id', $ids)->delete();
+            Grupo::whereIn('id', $ids)->delete();
+        });
+
+        return back()->with('flash', [
+            'type' => 'success',
+            'message' => 'Todos los grupos y sus asignaciones fueron eliminados.',
+        ]);
+    }
+
     public function configurar(Gestion $gestion, string $nombre): Response
     {
         $grupos = Grupo::where('gestion_id', $gestion->id)

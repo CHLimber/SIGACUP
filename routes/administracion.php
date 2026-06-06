@@ -40,6 +40,7 @@ Route::middleware(['auth', 'verified'])->prefix('administracion')->group(functio
         Route::get('/', [GruposController::class, 'seleccionar'])->name('seleccionar');
         Route::get('{gestion}', [GruposController::class, 'index'])->name('index');
         Route::post('{gestion}/generar', [GruposController::class, 'generar'])->name('generar');
+        Route::delete('{gestion}/limpiar', [GruposController::class, 'limpiar'])->name('limpiar');
         Route::get('{gestion}/asignar-docentes', [GruposController::class, 'docentes'])->name('docentes');
         Route::patch('{gestion}/asignar-docentes', [GruposController::class, 'asignarDocentes'])->name('docentes.guardar');
         Route::post('{gestion}/asignar-docentes/auto', [GruposController::class, 'autoAsignarDocentes'])->name('docentes.auto');
