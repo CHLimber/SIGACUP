@@ -46,6 +46,9 @@ RUN npm ci
 
 COPY . .
 
+ARG VITE_APP_NAME=SIGACUP
+ENV VITE_APP_NAME=${VITE_APP_NAME}
+
 RUN composer dump-autoload --optimize --no-dev \
     && npm run build \
     && rm -rf node_modules

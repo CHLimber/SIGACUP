@@ -12,6 +12,7 @@ import {
     DialogTitle,
 } from '@/components/ui/dialog';
 import { dashboard } from '@/routes';
+import { generar as routeGenerar, limpiar as routeLimpiar } from '@/routes/grupos';
 
 interface Gestion {
     id: number;
@@ -43,10 +44,12 @@ defineOptions({
     },
 });
 
-const yaExisten    = computed(() => props.grupos.length > 0);
-const confirmar    = ref(false);
+const yaExisten        = computed(() => props.grupos.length > 0);
+const confirmar        = ref(false);
 const confirmarLimpiar = ref(false);
-const procesando   = ref(false);
+const procesandoGenerar  = ref(false);
+const procesandoLimpiar  = ref(false);
+const procesando         = computed(() => procesandoGenerar.value || procesandoLimpiar.value);
 
 function solicitarGenerar() {
     if (yaExisten.value) {
@@ -58,20 +61,20 @@ function solicitarGenerar() {
 
 function ejecutarGenerar() {
     confirmar.value = false;
-    procesando.value = true;
+    procesandoGenerar.value = true;
     router.post(
-        `/administracion/grupos/${props.gestion.id}/generar`,
+        routeGenerar.url(props.gestion),
         {},
-        { onFinish: () => { procesando.value = false; } },
+        { onFinish: () => { procesandoGenerar.value = false; } },
     );
 }
 
 function ejecutarLimpiar() {
     confirmarLimpiar.value = false;
-    procesando.value = true;
+    procesandoLimpiar.value = true;
     router.delete(
-        `/administracion/grupos/${props.gestion.id}/limpiar`,
-        { onFinish: () => { procesando.value = false; } },
+        routeLimpiar.url(props.gestion.id),
+        { onFinish: () => { procesandoLimpiar.value = false; } },
     );
 }
 
@@ -205,7 +208,7 @@ const puedeGenerar = computed(() =>
                 :disabled="procesando"
                 @click="confirmarLimpiar = true"
             >
-                {{ procesando ? 'Eliminando…' : 'Limpiar todos los grupos' }}
+                {{ procesandoLimpiar ? 'Eliminando…' : 'Limpiar todos los grupos' }}
             </Button>
             <Button
                 v-if="!yaExisten"
@@ -214,7 +217,7 @@ const puedeGenerar = computed(() =>
                 class="text-white hover:brightness-110"
                 @click="solicitarGenerar"
             >
-                {{ procesando ? 'Generando…' : 'Generar grupos automáticamente' }}
+                {{ procesandoGenerar ? 'Generando…' : 'Generar grupos automáticamente' }}
             </Button>
             <Button
                 v-else
@@ -223,7 +226,7 @@ const puedeGenerar = computed(() =>
                 :disabled="procesando || nCalculado === 0"
                 @click="solicitarGenerar"
             >
-                {{ procesando ? 'Regenerando…' : 'Regenerar grupos' }}
+                {{ procesandoGenerar ? 'Regenerando…' : 'Regenerar grupos' }}
             </Button>
         </div>
     </div>
