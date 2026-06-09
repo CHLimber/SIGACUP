@@ -90,7 +90,7 @@ const puedeGenerar = computed(() =>
 <template>
     <Head :title="`Grupos — ${gestion.anio} ${labelSemestre}`" />
 
-    <div class="flex flex-col gap-6 p-6">
+    <div class="flex flex-col gap-6 p-4 sm:p-6">
 
         <!-- Encabezado -->
         <div class="flex flex-wrap items-start justify-between gap-4">
@@ -143,7 +143,8 @@ const puedeGenerar = computed(() =>
 
         <!-- Tabla de grupos existentes -->
         <div v-if="yaExisten" class="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
-            <table class="w-full text-sm">
+            <div class="overflow-x-auto">
+            <table class="w-full min-w-[640px] text-sm">
                 <thead>
                     <tr style="background-color: #060041;">
                         <th class="px-5 py-3.5 text-left text-xs font-semibold uppercase tracking-wider text-white">Grupo</th>
@@ -185,6 +186,7 @@ const puedeGenerar = computed(() =>
                     </tr>
                 </tbody>
             </table>
+            </div>
         </div>
 
         <!-- Estado vacío -->

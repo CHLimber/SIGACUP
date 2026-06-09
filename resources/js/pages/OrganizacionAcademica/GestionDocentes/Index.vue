@@ -147,7 +147,7 @@ pages.push('...');
 <template>
     <Head title="Gestionar Docentes" />
 
-    <div class="flex flex-col gap-6 p-6">
+    <div class="flex flex-col gap-6 p-4 sm:p-6">
         <!-- Encabezado -->
         <div>
             <h1 class="text-2xl font-bold text-gray-900">Gestionar Docentes</h1>
@@ -232,7 +232,8 @@ pages.push('...');
 
         <!-- Tabla -->
         <div class="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
-            <table class="w-full text-sm">
+            <div class="overflow-x-auto">
+            <table class="w-full min-w-[640px] text-sm">
                 <thead>
                     <tr style="background-color: #7b0000;">
                         <th class="px-5 py-3.5 text-left text-xs font-semibold uppercase tracking-wider text-white">CI</th>
@@ -289,6 +290,7 @@ pages.push('...');
                     </tr>
                 </tbody>
             </table>
+            </div>
 
             <!-- Pie de paginación -->
             <div

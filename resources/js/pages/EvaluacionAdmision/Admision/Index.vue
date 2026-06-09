@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { Head, router } from '@inertiajs/vue3';
-import { GraduationCap, UserCheck, AlertTriangle } from 'lucide-vue-next';
-import { computed, ref } from 'vue';
+import { GraduationCap, UserCheck, AlertTriangle, X } from 'lucide-vue-next';
+import { computed, ref, watch } from 'vue';
 import { Button } from '@/components/ui/button';
 import {
     Dialog,
@@ -42,9 +42,16 @@ interface CandidatoDocente extends CandidatoBase {
     email: string;
 }
 
+interface GestionOption {
+    id: number;
+    label: string;
+}
+
 const props = defineProps<{
     candidatosEstudiante: CandidatoEstudiante[];
     candidatosDocente:    CandidatoDocente[];
+    gestiones:            GestionOption[];
+    filtros:              { gestion_id: number | null };
 }>();
 
 defineOptions({
@@ -56,8 +63,25 @@ defineOptions({
     },
 });
 
-const tab = ref<'estudiantes' | 'docentes'>('estudiantes');
-const filtroEstado = ref<'activos' | 'todos'>('activos');
+const tab            = ref<'estudiantes' | 'docentes'>('estudiantes');
+const filtroEstado   = ref<'activos' | 'todos'>('activos');
+const filtroGestionId = ref(props.filtros.gestion_id ? String(props.filtros.gestion_id) : '');
+const busqueda       = ref('');
+
+// Recarga el servidor al cambiar la gestión
+watch(filtroGestionId, (val) => {
+    const params: Record<string, string> = {};
+    if (val) params.gestion_id = val;
+    router.get('/administracion/admision', params, { preserveScroll: true, replace: true });
+});
+
+const hayFiltros = computed(() => !!(filtroGestionId.value || busqueda.value || filtroEstado.value === 'todos'));
+
+function limpiarFiltros() {
+    filtroGestionId.value = '';
+    busqueda.value = '';
+    filtroEstado.value = 'activos';
+}
 
 const estadoConfig: Record<Estado, { label: string; clases: string }> = {
     pendiente:               { label: 'Sin enviar',             clases: 'bg-gray-100 text-gray-700' },
@@ -77,16 +101,28 @@ function infoEstado(e: string) {
 
 const estadosActivos: Estado[] = ['en_revision', 'requiere_correcciones'];
 
+function matchBusqueda(c: CandidatoBase): boolean {
+    if (!busqueda.value.trim()) return true;
+    const q = busqueda.value.toLowerCase();
+    return (
+        c.ci?.toLowerCase().includes(q) ||
+        c.apellido?.toLowerCase().includes(q) ||
+        c.nombres?.toLowerCase().includes(q) ||
+        (c as CandidatoEstudiante).email?.toLowerCase().includes(q) ||
+        false
+    );
+}
+
 const candidatosEstudianteFiltrados = computed(() =>
-    filtroEstado.value === 'activos'
-        ? props.candidatosEstudiante.filter(c => estadosActivos.includes(c.estado))
-        : props.candidatosEstudiante,
+    props.candidatosEstudiante
+        .filter(c => filtroEstado.value === 'activos' ? estadosActivos.includes(c.estado) : true)
+        .filter(matchBusqueda),
 );
 
 const candidatosDocenteFiltrados = computed(() =>
-    filtroEstado.value === 'activos'
-        ? props.candidatosDocente.filter(c => estadosActivos.includes(c.estado))
-        : props.candidatosDocente,
+    props.candidatosDocente
+        .filter(c => filtroEstado.value === 'activos' ? estadosActivos.includes(c.estado) : true)
+        .filter(matchBusqueda),
 );
 
 const totales = computed(() => ({
@@ -117,16 +153,11 @@ function confirmarEliminar(tipo: 'estudiante' | 'docente', c: CandidatoBase) {
 }
 
 function cancelarEliminar() {
-    if (!eliminando.value) {
-candidatoAEliminar.value = null;
-}
+    if (!eliminando.value) candidatoAEliminar.value = null;
 }
 
 function ejecutarEliminar() {
-    if (!candidatoAEliminar.value) {
-return;
-}
-
+    if (!candidatoAEliminar.value) return;
     const { id, tipo } = candidatoAEliminar.value;
     eliminando.value = true;
     router.delete(`/administracion/admision/candidato-${tipo}/${id}`, {
@@ -141,7 +172,7 @@ return;
 <template>
     <Head title="Admisión — SIGACUP" />
 
-    <div class="flex flex-col gap-6 p-6">
+    <div class="flex flex-col gap-6 p-4 sm:p-6">
         <!-- Encabezado -->
         <div>
             <h1 class="text-2xl font-bold text-gray-900">Admisión de Candidatos</h1>
@@ -173,134 +204,174 @@ return;
             </div>
         </div>
 
-        <!-- Tabs + Filtro -->
-        <div class="flex flex-wrap items-center justify-between gap-3 border-b border-gray-200">
-            <div class="flex gap-1">
-                <button
-                    type="button"
-                    @click="tab = 'estudiantes'"
-                    :class="[
-                        'border-b-2 px-4 py-2.5 text-sm font-semibold transition',
-                        tab === 'estudiantes'
-                            ? 'border-[#073b75] text-[#073b75]'
-                            : 'border-transparent text-gray-500 hover:text-gray-700',
-                    ]"
+        <!-- Tabs -->
+        <div class="flex flex-wrap gap-1 border-b border-gray-200">
+            <button
+                type="button"
+                @click="tab = 'estudiantes'"
+                :class="[
+                    'border-b-2 px-4 py-2.5 text-sm font-semibold transition',
+                    tab === 'estudiantes'
+                        ? 'border-[#073b75] text-[#073b75]'
+                        : 'border-transparent text-gray-500 hover:text-gray-700',
+                ]"
+            >
+                Candidatos a estudiante ({{ candidatosEstudiante.length }})
+            </button>
+            <button
+                type="button"
+                @click="tab = 'docentes'"
+                :class="[
+                    'border-b-2 px-4 py-2.5 text-sm font-semibold transition',
+                    tab === 'docentes'
+                        ? 'border-[#c70e0a] text-[#c70e0a]'
+                        : 'border-transparent text-gray-500 hover:text-gray-700',
+                ]"
+            >
+                Candidatos a docente ({{ candidatosDocente.length }})
+            </button>
+        </div>
+
+        <!-- Barra de filtros -->
+        <div class="flex flex-wrap items-end gap-3">
+            <!-- Gestión (solo estudiantes) -->
+            <div v-if="tab === 'estudiantes'" class="flex flex-col gap-1">
+                <label class="text-xs font-semibold uppercase tracking-wider text-gray-500">Gestión</label>
+                <select
+                    v-model="filtroGestionId"
+                    class="rounded-md border border-gray-300 bg-white px-3 py-2 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-[#073b75]"
                 >
-                    Candidatos a estudiante ({{ candidatosEstudiante.length }})
-                </button>
-                <button
-                    type="button"
-                    @click="tab = 'docentes'"
-                    :class="[
-                        'border-b-2 px-4 py-2.5 text-sm font-semibold transition',
-                        tab === 'docentes'
-                            ? 'border-[#c70e0a] text-[#c70e0a]'
-                            : 'border-transparent text-gray-500 hover:text-gray-700',
-                    ]"
-                >
-                    Candidatos a docente ({{ candidatosDocente.length }})
-                </button>
+                    <option value="">Todas las gestiones</option>
+                    <option v-for="g in gestiones" :key="g.id" :value="String(g.id)">{{ g.label }}</option>
+                </select>
             </div>
-            <div class="flex gap-2 pb-2">
-                <button
-                    type="button"
-                    @click="filtroEstado = 'activos'"
-                    :class="[
-                        'rounded-md px-3 py-1.5 text-xs font-medium transition',
-                        filtroEstado === 'activos'
-                            ? 'bg-blue-100 text-blue-700 ring-1 ring-blue-300'
-                            : 'text-gray-500 hover:bg-gray-100',
-                    ]"
-                >
-                    Por revisar
-                </button>
-                <button
-                    type="button"
-                    @click="filtroEstado = 'todos'"
-                    :class="[
-                        'rounded-md px-3 py-1.5 text-xs font-medium transition',
-                        filtroEstado === 'todos'
-                            ? 'bg-gray-200 text-gray-800'
-                            : 'text-gray-500 hover:bg-gray-100',
-                    ]"
-                >
-                    Todos
-                </button>
+
+            <!-- Búsqueda -->
+            <div class="flex flex-col gap-1">
+                <label class="text-xs font-semibold uppercase tracking-wider text-gray-500">Buscar</label>
+                <input
+                    v-model="busqueda"
+                    placeholder="CI, nombre o email…"
+                    class="rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-[#073b75] focus:outline-none focus:ring-1 focus:ring-[#073b75] w-48 sm:w-64"
+                />
             </div>
+
+            <!-- Estado -->
+            <div class="flex flex-col gap-1">
+                <label class="text-xs font-semibold uppercase tracking-wider text-gray-500">Estado</label>
+                <div class="flex gap-1">
+                    <button
+                        type="button"
+                        @click="filtroEstado = 'activos'"
+                        :class="[
+                            'rounded-md px-3 py-2 text-xs font-medium transition',
+                            filtroEstado === 'activos'
+                                ? 'bg-blue-100 text-blue-700 ring-1 ring-blue-300'
+                                : 'border border-gray-300 text-gray-500 hover:bg-gray-50',
+                        ]"
+                    >
+                        Por revisar
+                    </button>
+                    <button
+                        type="button"
+                        @click="filtroEstado = 'todos'"
+                        :class="[
+                            'rounded-md px-3 py-2 text-xs font-medium transition',
+                            filtroEstado === 'todos'
+                                ? 'bg-gray-200 text-gray-800'
+                                : 'border border-gray-300 text-gray-500 hover:bg-gray-50',
+                        ]"
+                    >
+                        Todos
+                    </button>
+                </div>
+            </div>
+
+            <!-- Limpiar -->
+            <button
+                v-if="hayFiltros"
+                type="button"
+                class="inline-flex items-center gap-1.5 rounded-md border border-gray-300 px-3 py-2 text-sm font-medium text-gray-600 transition hover:bg-gray-50"
+                @click="limpiarFiltros"
+            >
+                <X class="h-3.5 w-3.5" /> Limpiar
+            </button>
         </div>
 
         <!-- TAB: estudiantes -->
         <div v-if="tab === 'estudiantes'" class="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
-            <table class="w-full text-sm">
-                <thead>
-                    <tr style="background-color: #060041;">
-                        <th class="px-5 py-3.5 text-left text-xs font-semibold uppercase tracking-wider text-white">CI</th>
-                        <th class="px-5 py-3.5 text-left text-xs font-semibold uppercase tracking-wider text-white">Nombre</th>
-                        <th class="px-5 py-3.5 text-left text-xs font-semibold uppercase tracking-wider text-white">Carreras</th>
-                        <th class="px-5 py-3.5 text-left text-xs font-semibold uppercase tracking-wider text-white">Estado</th>
-                        <th class="px-5 py-3.5 text-left text-xs font-semibold uppercase tracking-wider text-white">Por revisar</th>
-                        <th class="px-5 py-3.5 text-right text-xs font-semibold uppercase tracking-wider text-white">Acción</th>
-                    </tr>
-                </thead>
-                <tbody class="divide-y divide-gray-100">
-                    <tr v-if="candidatosEstudianteFiltrados.length === 0">
-                        <td colspan="6" class="px-5 py-14 text-center text-gray-400">
-                            No hay candidatos a estudiante {{ filtroEstado === 'activos' ? 'por revisar' : '' }}.
-                        </td>
-                    </tr>
+            <div class="overflow-x-auto">
+                <table class="w-full min-w-[640px] text-sm">
+                    <thead>
+                        <tr style="background-color: #060041;">
+                            <th class="px-5 py-3.5 text-left text-xs font-semibold uppercase tracking-wider text-white">CI</th>
+                            <th class="px-5 py-3.5 text-left text-xs font-semibold uppercase tracking-wider text-white">Nombre</th>
+                            <th class="px-5 py-3.5 text-left text-xs font-semibold uppercase tracking-wider text-white">Carreras</th>
+                            <th class="px-5 py-3.5 text-left text-xs font-semibold uppercase tracking-wider text-white">Estado</th>
+                            <th class="px-5 py-3.5 text-left text-xs font-semibold uppercase tracking-wider text-white">Por revisar</th>
+                            <th class="px-5 py-3.5 text-right text-xs font-semibold uppercase tracking-wider text-white">Acción</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-gray-100">
+                        <tr v-if="candidatosEstudianteFiltrados.length === 0">
+                            <td colspan="6" class="px-5 py-14 text-center text-gray-400">
+                                No hay candidatos a estudiante {{ filtroEstado === 'activos' ? 'por revisar' : '' }}.
+                            </td>
+                        </tr>
 
-                    <tr
-                        v-for="c in candidatosEstudianteFiltrados"
-                        :key="c.id"
-                        class="transition-colors hover:bg-gray-50"
-                    >
-                        <td class="px-5 py-4 font-mono text-xs text-gray-700">{{ c.ci }}</td>
-                        <td class="px-5 py-4">
-                            <p class="font-semibold text-gray-900">{{ c.apellido }} {{ c.nombres }}</p>
-                            <p class="text-xs text-gray-500">{{ fmtFecha(c.fecha_nacimiento) }} · {{ c.email || 'sin email' }}</p>
-                        </td>
-                        <td class="px-5 py-4 text-xs">
-                            <p>{{ c.carrera_primera_opcion }}</p>
-                            <p class="text-gray-500">{{ c.carrera_segunda_opcion }}</p>
-                        </td>
-                        <td class="px-5 py-4">
-                            <span
-                                class="inline-flex rounded-full px-2.5 py-0.5 text-xs font-semibold"
-                                :class="infoEstado(c.estado).clases"
-                            >
-                                {{ infoEstado(c.estado).label }}
-                            </span>
-                        </td>
-                        <td class="px-5 py-4 text-xs text-gray-600">
-                            <span
-                                v-if="c.requisitos_pendientes_revision_count > 0"
-                                class="rounded-full bg-yellow-100 px-2 py-0.5 font-semibold text-yellow-700"
-                            >
-                                {{ c.requisitos_pendientes_revision_count }} documento(s)
-                            </span>
-                            <span v-else class="text-gray-400">—</span>
-                        </td>
-                        <td class="px-5 py-4 text-right">
-                            <div class="flex items-center justify-end gap-2">
-                                <button
-                                    v-if="c.estado !== 'pendiente'"
-                                    class="rounded-md bg-[#073b75] px-3 py-1.5 text-xs font-semibold text-white transition hover:bg-[#052a55]"
-                                    @click="revisar('estudiante', c.id)"
+                        <tr
+                            v-for="c in candidatosEstudianteFiltrados"
+                            :key="c.id"
+                            class="transition-colors hover:bg-gray-50"
+                        >
+                            <td class="px-5 py-4 font-mono text-xs text-gray-700">{{ c.ci }}</td>
+                            <td class="px-5 py-4">
+                                <p class="font-semibold text-gray-900">{{ c.apellido }} {{ c.nombres }}</p>
+                                <p class="text-xs text-gray-500">{{ fmtFecha(c.fecha_nacimiento) }} · {{ c.email || 'sin email' }}</p>
+                            </td>
+                            <td class="px-5 py-4 text-xs">
+                                <p>{{ c.carrera_primera_opcion }}</p>
+                                <p class="text-gray-500">{{ c.carrera_segunda_opcion }}</p>
+                            </td>
+                            <td class="px-5 py-4">
+                                <span
+                                    class="inline-flex rounded-full px-2.5 py-0.5 text-xs font-semibold"
+                                    :class="infoEstado(c.estado).clases"
                                 >
-                                    Revisar →
-                                </button>
-                                <span v-else class="text-xs italic text-gray-400">Sin requisitos</span>
-                                <button
-                                    class="rounded-md bg-red-100 px-2.5 py-1.5 text-xs font-semibold text-red-700 transition hover:bg-red-200"
-                                    @click="confirmarEliminar('estudiante', c)"
+                                    {{ infoEstado(c.estado).label }}
+                                </span>
+                            </td>
+                            <td class="px-5 py-4 text-xs text-gray-600">
+                                <span
+                                    v-if="c.requisitos_pendientes_revision_count > 0"
+                                    class="rounded-full bg-yellow-100 px-2 py-0.5 font-semibold text-yellow-700"
                                 >
-                                    Eliminar
-                                </button>
-                            </div>
-                        </td>
-                    </tr>
-                </tbody>
-            </table>
+                                    {{ c.requisitos_pendientes_revision_count }} doc.
+                                </span>
+                                <span v-else class="text-gray-400">—</span>
+                            </td>
+                            <td class="px-5 py-4 text-right">
+                                <div class="flex items-center justify-end gap-2">
+                                    <button
+                                        v-if="c.estado !== 'pendiente'"
+                                        class="rounded-md bg-[#073b75] px-3 py-1.5 text-xs font-semibold text-white transition hover:bg-[#052a55]"
+                                        @click="revisar('estudiante', c.id)"
+                                    >
+                                        Revisar →
+                                    </button>
+                                    <span v-else class="text-xs italic text-gray-400">Sin requisitos</span>
+                                    <button
+                                        class="rounded-md bg-red-100 px-2.5 py-1.5 text-xs font-semibold text-red-700 transition hover:bg-red-200"
+                                        @click="confirmarEliminar('estudiante', c)"
+                                    >
+                                        Eliminar
+                                    </button>
+                                </div>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
         </div>
 
         <!-- Diálogo de confirmación de eliminación -->
@@ -339,73 +410,75 @@ return;
 
         <!-- TAB: docentes -->
         <div v-if="tab === 'docentes'" class="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
-            <table class="w-full text-sm">
-                <thead>
-                    <tr style="background-color: #7b0000;">
-                        <th class="px-5 py-3.5 text-left text-xs font-semibold uppercase tracking-wider text-white">CI</th>
-                        <th class="px-5 py-3.5 text-left text-xs font-semibold uppercase tracking-wider text-white">Nombre</th>
-                        <th class="px-5 py-3.5 text-left text-xs font-semibold uppercase tracking-wider text-white">Email</th>
-                        <th class="px-5 py-3.5 text-left text-xs font-semibold uppercase tracking-wider text-white">Estado</th>
-                        <th class="px-5 py-3.5 text-left text-xs font-semibold uppercase tracking-wider text-white">Por revisar</th>
-                        <th class="px-5 py-3.5 text-right text-xs font-semibold uppercase tracking-wider text-white">Acción</th>
-                    </tr>
-                </thead>
-                <tbody class="divide-y divide-gray-100">
-                    <tr v-if="candidatosDocenteFiltrados.length === 0">
-                        <td colspan="6" class="px-5 py-14 text-center text-gray-400">
-                            No hay candidatos a docente {{ filtroEstado === 'activos' ? 'por revisar' : '' }}.
-                        </td>
-                    </tr>
+            <div class="overflow-x-auto">
+                <table class="w-full min-w-[640px] text-sm">
+                    <thead>
+                        <tr style="background-color: #7b0000;">
+                            <th class="px-5 py-3.5 text-left text-xs font-semibold uppercase tracking-wider text-white">CI</th>
+                            <th class="px-5 py-3.5 text-left text-xs font-semibold uppercase tracking-wider text-white">Nombre</th>
+                            <th class="px-5 py-3.5 text-left text-xs font-semibold uppercase tracking-wider text-white">Email</th>
+                            <th class="px-5 py-3.5 text-left text-xs font-semibold uppercase tracking-wider text-white">Estado</th>
+                            <th class="px-5 py-3.5 text-left text-xs font-semibold uppercase tracking-wider text-white">Por revisar</th>
+                            <th class="px-5 py-3.5 text-right text-xs font-semibold uppercase tracking-wider text-white">Acción</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-gray-100">
+                        <tr v-if="candidatosDocenteFiltrados.length === 0">
+                            <td colspan="6" class="px-5 py-14 text-center text-gray-400">
+                                No hay candidatos a docente {{ filtroEstado === 'activos' ? 'por revisar' : '' }}.
+                            </td>
+                        </tr>
 
-                    <tr
-                        v-for="c in candidatosDocenteFiltrados"
-                        :key="c.id"
-                        class="transition-colors hover:bg-gray-50"
-                    >
-                        <td class="px-5 py-4 font-mono text-xs text-gray-700">{{ c.ci }}</td>
-                        <td class="px-5 py-4">
-                            <p class="font-semibold text-gray-900">{{ c.apellido }} {{ c.nombres }}</p>
-                            <p class="text-xs text-gray-500">{{ fmtFecha(c.fecha_nacimiento) }} · {{ c.sexo }}</p>
-                        </td>
-                        <td class="px-5 py-4 text-xs text-gray-600">{{ c.email }}</td>
-                        <td class="px-5 py-4">
-                            <span
-                                class="inline-flex rounded-full px-2.5 py-0.5 text-xs font-semibold"
-                                :class="infoEstado(c.estado).clases"
-                            >
-                                {{ infoEstado(c.estado).label }}
-                            </span>
-                        </td>
-                        <td class="px-5 py-4 text-xs text-gray-600">
-                            <span
-                                v-if="c.requisitos_pendientes_revision_count > 0"
-                                class="rounded-full bg-yellow-100 px-2 py-0.5 font-semibold text-yellow-700"
-                            >
-                                {{ c.requisitos_pendientes_revision_count }} documento(s)
-                            </span>
-                            <span v-else class="text-gray-400">—</span>
-                        </td>
-                        <td class="px-5 py-4 text-right">
-                            <div class="flex items-center justify-end gap-2">
-                                <button
-                                    v-if="c.estado !== 'pendiente'"
-                                    class="rounded-md bg-[#c70e0a] px-3 py-1.5 text-xs font-semibold text-white transition hover:bg-[#a00b08]"
-                                    @click="revisar('docente', c.id)"
+                        <tr
+                            v-for="c in candidatosDocenteFiltrados"
+                            :key="c.id"
+                            class="transition-colors hover:bg-gray-50"
+                        >
+                            <td class="px-5 py-4 font-mono text-xs text-gray-700">{{ c.ci }}</td>
+                            <td class="px-5 py-4">
+                                <p class="font-semibold text-gray-900">{{ c.apellido }} {{ c.nombres }}</p>
+                                <p class="text-xs text-gray-500">{{ fmtFecha(c.fecha_nacimiento) }} · {{ c.sexo }}</p>
+                            </td>
+                            <td class="px-5 py-4 text-xs text-gray-600">{{ c.email }}</td>
+                            <td class="px-5 py-4">
+                                <span
+                                    class="inline-flex rounded-full px-2.5 py-0.5 text-xs font-semibold"
+                                    :class="infoEstado(c.estado).clases"
                                 >
-                                    Revisar →
-                                </button>
-                                <span v-else class="text-xs italic text-gray-400">Sin requisitos</span>
-                                <button
-                                    class="rounded-md bg-red-100 px-2.5 py-1.5 text-xs font-semibold text-red-700 transition hover:bg-red-200"
-                                    @click="confirmarEliminar('docente', c)"
+                                    {{ infoEstado(c.estado).label }}
+                                </span>
+                            </td>
+                            <td class="px-5 py-4 text-xs text-gray-600">
+                                <span
+                                    v-if="c.requisitos_pendientes_revision_count > 0"
+                                    class="rounded-full bg-yellow-100 px-2 py-0.5 font-semibold text-yellow-700"
                                 >
-                                    Eliminar
-                                </button>
-                            </div>
-                        </td>
-                    </tr>
-                </tbody>
-            </table>
+                                    {{ c.requisitos_pendientes_revision_count }} doc.
+                                </span>
+                                <span v-else class="text-gray-400">—</span>
+                            </td>
+                            <td class="px-5 py-4 text-right">
+                                <div class="flex items-center justify-end gap-2">
+                                    <button
+                                        v-if="c.estado !== 'pendiente'"
+                                        class="rounded-md bg-[#c70e0a] px-3 py-1.5 text-xs font-semibold text-white transition hover:bg-[#a00b08]"
+                                        @click="revisar('docente', c.id)"
+                                    >
+                                        Revisar →
+                                    </button>
+                                    <span v-else class="text-xs italic text-gray-400">Sin requisitos</span>
+                                    <button
+                                        class="rounded-md bg-red-100 px-2.5 py-1.5 text-xs font-semibold text-red-700 transition hover:bg-red-200"
+                                        @click="confirmarEliminar('docente', c)"
+                                    >
+                                        Eliminar
+                                    </button>
+                                </div>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
         </div>
     </div>
 </template>

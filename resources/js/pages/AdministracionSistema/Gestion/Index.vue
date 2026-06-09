@@ -112,7 +112,7 @@ return soloFecha;
 <template>
     <Head title="Gestiones Académicas" />
 
-    <div class="flex flex-col gap-6 p-6">
+    <div class="flex flex-col gap-6 p-4 sm:p-6">
         <!-- Encabezado -->
         <div class="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
             <div>
@@ -130,7 +130,8 @@ return soloFecha;
 
         <!-- Tabla -->
         <div class="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
-            <table class="w-full text-sm">
+            <div class="overflow-x-auto">
+            <table class="w-full min-w-[640px] text-sm">
                 <thead>
                     <tr style="background-color: #060041;">
                         <th class="px-5 py-3.5 text-left text-xs font-semibold uppercase tracking-wider text-white">
@@ -278,6 +279,7 @@ return soloFecha;
                     </tr>
                 </tbody>
             </table>
+            </div>
         </div>
 
         <!-- Leyenda de estados -->

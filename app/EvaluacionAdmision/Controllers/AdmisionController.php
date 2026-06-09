@@ -2,6 +2,7 @@
 
 namespace App\EvaluacionAdmision\Controllers;
 
+use App\AdministracionSistema\Models\Gestion;
 use App\Enums\UserRole;
 use App\Http\Controllers\Controller;
 use App\Mail\CandidatoRechazadoDefinitivamente;
@@ -30,21 +31,38 @@ use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class AdmisionController extends Controller
 {
-    public function index(): Response
+    public function index(Request $request): Response
     {
+        $gestionId = $request->integer('gestion_id') ?: null;
+
+        $gestiones = Gestion::orderByDesc('anio')
+            ->orderByDesc('semestre')
+            ->get()
+            ->map(fn ($g) => [
+                'id'    => $g->id,
+                'label' => "{$g->anio} · " . ($g->semestre === 1 ? '1er Semestre' : '2do Semestre'),
+            ]);
+
+        $queryEstudiantes = CandidatoEstudiante::with(['persona', 'postulacion.carrera1', 'postulacion.carrera2'])
+            ->withCount([
+                'requisitos as requisitos_pendientes_revision_count' => fn ($q) => $q->where('estado', RequisitoEstudiante::ESTADO_PENDIENTE_REVISION),
+            ])
+            ->orderBy('created_at', 'desc');
+
+        if ($gestionId) {
+            $queryEstudiantes->whereHas('postulacion', fn ($q) => $q->where('gestion_id', $gestionId));
+        }
+
         return Inertia::render('EvaluacionAdmision/Admision/Index', [
-            'candidatosEstudiante' => CandidatoEstudiante::with(['persona', 'postulacion.carrera1', 'postulacion.carrera2'])
-                ->withCount([
-                    'requisitos as requisitos_pendientes_revision_count' => fn ($q) => $q->where('estado', RequisitoEstudiante::ESTADO_PENDIENTE_REVISION),
-                ])
-                ->orderBy('created_at', 'desc')
-                ->get(),
-            'candidatosDocente' => CandidatoDocente::with('persona')
+            'candidatosEstudiante' => $queryEstudiantes->get(),
+            'candidatosDocente'    => CandidatoDocente::with('persona')
                 ->withCount([
                     'requisitos as requisitos_pendientes_revision_count' => fn ($q) => $q->where('estado', RequisitoDocente::ESTADO_PENDIENTE_REVISION),
                 ])
                 ->orderBy('created_at', 'desc')
                 ->get(),
+            'gestiones' => $gestiones,
+            'filtros'   => ['gestion_id' => $gestionId],
         ]);
     }
 
