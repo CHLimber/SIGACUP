@@ -45,7 +45,10 @@ class RegistroController extends Controller
         $candidato->load('persona');
 
         if ($candidato->email) {
-            Mail::to($candidato->email)->send(new SolicitudEstudianteRecibida($candidato));
+            try {
+                Mail::to($candidato->email)->send(new SolicitudEstudianteRecibida($candidato));
+            } catch (\Throwable) {
+            }
         }
 
         return redirect()->route('home')
@@ -80,7 +83,10 @@ class RegistroController extends Controller
 
         $candidato->load('persona');
 
-        Mail::to($candidato->email)->send(new SolicitudDocenteRecibida($candidato));
+        try {
+            Mail::to($candidato->email)->send(new SolicitudDocenteRecibida($candidato));
+        } catch (\Throwable) {
+        }
 
         return redirect()->route('home')
             ->with('flash', [
