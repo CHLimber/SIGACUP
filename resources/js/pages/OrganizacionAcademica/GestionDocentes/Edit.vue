@@ -19,6 +19,13 @@ interface Docente {
     experiencia_anios: number;
     tiene_diplomado: boolean;
     tiene_maestria: boolean;
+    activo: boolean;
+    materias: string[];
+}
+
+interface MateriaOpt {
+    codigo: string;
+    nombre: string;
 }
 
 interface Documento {
@@ -35,9 +42,11 @@ interface Documento {
 }
 
 const props = defineProps<{
-    docente:     Docente;
-    documentos:  Documento[];
-    candidatoId: number | null;
+    docente:             Docente;
+    tieneDatosDocente:   boolean;
+    materiasDisponibles: MateriaOpt[];
+    documentos:          Documento[];
+    candidatoId:         number | null;
 }>();
 
 defineOptions({
@@ -53,7 +62,17 @@ defineOptions({
 const form = ref({
     telefono:  props.docente.telefono || '',
     direccion: props.docente.direccion || '',
+    materias:  [...props.docente.materias],
+    activo:    props.docente.activo,
 });
+
+function toggleMateria(codigo: string) {
+    if (form.value.materias.includes(codigo)) {
+        form.value.materias = form.value.materias.filter((c) => c !== codigo);
+    } else {
+        form.value.materias = [...form.value.materias, codigo];
+    }
+}
 
 const procesando = ref(false);
 const errors     = ref<Record<string, string>>({});
@@ -115,8 +134,15 @@ return { label: 'Pendiente',  clases: 'bg-yellow-100 text-yellow-700' };
                 <Link href="/administracion/docentes" class="text-sm text-gray-500 hover:text-gray-700">
                     ← Volver a docentes
                 </Link>
-                <h1 class="mt-1 text-2xl font-bold text-gray-900">
+                <h1 class="mt-1 flex items-center gap-2 text-2xl font-bold text-gray-900">
                     {{ docente.apellido }} {{ docente.nombres }}
+                    <span
+                        v-if="tieneDatosDocente"
+                        class="inline-flex rounded-full px-2.5 py-0.5 text-xs font-semibold"
+                        :class="docente.activo ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'"
+                    >
+                        {{ docente.activo ? 'Activo' : 'Deshabilitado' }}
+                    </span>
                 </h1>
                 <p class="mt-0.5 text-sm text-gray-500 font-mono">
                     {{ docente.ci }} · {{ docente.email }} · @{{ docente.username }}
@@ -179,6 +205,52 @@ return { label: 'Pendiente',  clases: 'bg-yellow-100 text-yellow-700' };
                         </span>
                     </div>
                 </div>
+            </div>
+        </div>
+
+        <!-- Materias y disponibilidad -->
+        <div v-if="tieneDatosDocente" class="rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
+            <h2 class="text-base font-semibold text-gray-900">Materias y disponibilidad</h2>
+            <p class="mt-0.5 text-sm text-gray-500">
+                Materias que el docente está habilitado para dictar. Solo recibirá grupos de estas materias al asignar docentes.
+            </p>
+
+            <div class="mt-4 grid grid-cols-1 gap-2 sm:grid-cols-2">
+                <label
+                    v-for="m in materiasDisponibles"
+                    :key="m.codigo"
+                    class="flex items-center gap-2 rounded-md border px-3 py-2 text-sm text-gray-700 transition"
+                    :class="form.materias.includes(m.codigo) ? 'border-[#c70e0a] bg-red-50/40' : 'border-gray-200'"
+                >
+                    <input
+                        type="checkbox"
+                        :checked="form.materias.includes(m.codigo)"
+                        class="h-4 w-4 rounded border-gray-300 text-[#c70e0a] focus:ring-[#c70e0a]"
+                        @change="toggleMateria(m.codigo)"
+                    />
+                    <span>{{ m.nombre }} <span class="font-mono text-xs text-gray-400">({{ m.codigo }})</span></span>
+                </label>
+            </div>
+            <p v-if="errors.materias" class="mt-1 text-xs text-red-600">{{ errors.materias }}</p>
+
+            <label class="mt-4 flex items-center gap-2 text-sm text-gray-700">
+                <input
+                    v-model="form.activo"
+                    type="checkbox"
+                    class="h-4 w-4 rounded border-gray-300 text-[#c70e0a] focus:ring-[#c70e0a]"
+                />
+                Docente activo (disponible para la asignación de grupos)
+            </label>
+
+            <div class="mt-4 flex justify-end">
+                <Button
+                    style="background-color: #c70e0a;"
+                    class="text-white hover:brightness-110"
+                    :disabled="procesando"
+                    @click="guardar"
+                >
+                    {{ procesando ? 'Guardando…' : 'Guardar cambios' }}
+                </Button>
             </div>
         </div>
 

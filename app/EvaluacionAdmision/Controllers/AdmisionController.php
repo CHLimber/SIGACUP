@@ -39,8 +39,8 @@ class AdmisionController extends Controller
             ->orderByDesc('semestre')
             ->get()
             ->map(fn ($g) => [
-                'id'    => $g->id,
-                'label' => "{$g->anio} · " . ($g->semestre === 1 ? '1er Semestre' : '2do Semestre'),
+                'id' => $g->id,
+                'label' => "{$g->anio} · ".($g->semestre === 1 ? '1er Semestre' : '2do Semestre'),
             ]);
 
         $queryEstudiantes = CandidatoEstudiante::with(['persona', 'postulacion.carrera1', 'postulacion.carrera2'])
@@ -55,14 +55,14 @@ class AdmisionController extends Controller
 
         return Inertia::render('EvaluacionAdmision/Admision/Index', [
             'candidatosEstudiante' => $queryEstudiantes->get(),
-            'candidatosDocente'    => CandidatoDocente::with('persona')
+            'candidatosDocente' => CandidatoDocente::with('persona')
                 ->withCount([
                     'requisitos as requisitos_pendientes_revision_count' => fn ($q) => $q->where('estado', RequisitoDocente::ESTADO_PENDIENTE_REVISION),
                 ])
                 ->orderBy('created_at', 'desc')
                 ->get(),
             'gestiones' => $gestiones,
-            'filtros'   => ['gestion_id' => $gestionId],
+            'filtros' => ['gestion_id' => $gestionId],
         ]);
     }
 
@@ -75,7 +75,7 @@ class AdmisionController extends Controller
 
     public function revisarCandidatoDocente(CandidatoDocente $candidato): Response
     {
-        $candidato->load('persona');
+        $candidato->load(['persona', 'materias']);
 
         return $this->renderRevisar($candidato, 'docente');
     }
@@ -187,16 +187,17 @@ class AdmisionController extends Controller
 
         $gestion = $postulacion->gestion;
         $montoBs = (float) ($gestion?->parametro('monto_matricula_bs') ?? config('sigacup.matricula.monto_bs', 800));
+        $tasa = max((float) config('sigacup.matricula.tasa_bs_usd', 6.96), 0.0001);
 
-        $pago = DB::transaction(function () use ($candidato, $postulacion, $montoBs): Pago {
+        $pago = DB::transaction(function () use ($candidato, $postulacion, $montoBs, $tasa): Pago {
             $candidato->update(['estado' => CandidatoEstudiante::ESTADO_APROBADO]);
 
             $pago = Pago::create([
                 'postulacion_id' => $postulacion->id,
                 'token_pago' => Str::random(64),
                 'monto_bs' => $montoBs,
-                'monto_usd' => $montoBs,
-                'tasa_cambio' => 1.0,
+                'monto_usd' => round($montoBs / $tasa, 2),
+                'tasa_cambio' => $tasa,
                 'metodo' => 'stripe',
                 'estado' => Pago::ESTADO_PENDIENTE,
             ]);
@@ -280,9 +281,18 @@ class AdmisionController extends Controller
             ]);
         }
 
+        $materias = $candidato->materias()->pluck('materia.codigo')->all();
+
+        if (empty($materias)) {
+            return back()->with('flash', [
+                'type' => 'error',
+                'message' => 'El candidato no indicó las materias que postula a enseñar.',
+            ]);
+        }
+
         $passwordTemporal = Str::random(12);
 
-        $user = DB::transaction(function () use ($candidato, $passwordTemporal) {
+        $user = DB::transaction(function () use ($candidato, $passwordTemporal, $materias) {
             $persona = $candidato->persona;
 
             $user = User::create([
@@ -299,13 +309,15 @@ class AdmisionController extends Controller
             $user->username = $apellido.$primerNombre.$user->id;
             $user->save();
 
-            Docente::create([
+            $docente = Docente::create([
                 'user_id' => $user->id,
                 'titulo' => $candidato->titulo,
                 'experiencia_anios' => $candidato->experiencia_anios,
                 'tiene_diplomado' => (bool) $candidato->tiene_diplomado,
                 'tiene_maestria' => (bool) $candidato->tiene_maestria,
             ]);
+
+            $docente->materias()->sync($materias);
 
             $candidato->update([
                 'estado' => CandidatoDocente::ESTADO_APROBADO,
@@ -315,13 +327,22 @@ class AdmisionController extends Controller
             return $user;
         });
 
-        Mail::to($candidato->email)->send(
-            new DocenteAprobadoConCredenciales($candidato, $user->username, $passwordTemporal),
-        );
+        $mailEnviado = true;
+        try {
+            Mail::to($candidato->email)->send(
+                new DocenteAprobadoConCredenciales($candidato, $user->username, $passwordTemporal),
+            );
+        } catch (\Throwable) {
+            $mailEnviado = false;
+        }
+
+        $mensaje = $mailEnviado
+            ? "Docente aprobado. Credenciales enviadas a {$candidato->email}. Usuario: {$user->username}"
+            : "Docente aprobado (usuario: {$user->username}), pero no se pudo enviar el correo con las credenciales — verifique la configuración de correo.";
 
         return back()->with('flash', [
             'type' => 'success',
-            'message' => "Docente aprobado. Credenciales enviadas a {$candidato->email}. Usuario: {$user->username}",
+            'message' => $mensaje,
         ]);
     }
 

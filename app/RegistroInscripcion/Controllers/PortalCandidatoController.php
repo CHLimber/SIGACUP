@@ -4,6 +4,7 @@ namespace App\RegistroInscripcion\Controllers;
 
 use App\AdministracionSistema\Models\Carrera;
 use App\AdministracionSistema\Models\Gestion;
+use App\AdministracionSistema\Models\Materia;
 use App\Http\Controllers\Controller;
 use App\OrganizacionAcademica\Models\CandidatoDocente;
 use App\RegistroInscripcion\Catalogos\RequisitosCatalogo;
@@ -68,6 +69,7 @@ class PortalCandidatoController extends Controller
                 'experiencia_anios' => $candidato->experiencia_anios ?? 0,
                 'tiene_diplomado' => (bool) $candidato->tiene_diplomado,
                 'tiene_maestria' => (bool) $candidato->tiene_maestria,
+                'materias' => $candidato->materias()->pluck('materia.codigo')->all(),
             ] : null,
             'datosAcademicos' => $esDocente ? null : [
                 'carrera1_id' => $postulacion?->carrera1_id,
@@ -79,6 +81,9 @@ class PortalCandidatoController extends Controller
             'carreras' => $esDocente
                 ? []
                 : Carrera::orderBy('nombre')->get(['id', 'nombre']),
+            'materias' => $esDocente
+                ? Materia::orderBy('nombre')->get(['codigo', 'nombre'])
+                : [],
             'requisitos' => $requisitos,
             'puedeEnviar' => $this->puedeEnviar($candidato),
             'bloqueado' => in_array($candidato->estado, [
@@ -111,12 +116,20 @@ class PortalCandidatoController extends Controller
             'experiencia_anios' => 'required|integer|min:0|max:60',
             'tiene_diplomado' => 'required|boolean',
             'tiene_maestria' => 'required|boolean',
+            'materias' => 'required|array|min:1',
+            'materias.*' => 'string|exists:materia,codigo',
         ], [
             'titulo.required' => 'El título profesional es obligatorio.',
             'experiencia_anios.required' => 'Indica tus años de experiencia.',
+            'materias.required' => 'Selecciona al menos una materia que postulas a enseñar.',
+            'materias.min' => 'Selecciona al menos una materia que postulas a enseñar.',
         ]);
 
+        $materias = $data['materias'];
+        unset($data['materias']);
+
         $candidato->update($data);
+        $candidato->materias()->sync($materias);
 
         return back()->with('flash', [
             'type' => 'success',
@@ -352,7 +365,9 @@ class PortalCandidatoController extends Controller
         }
 
         if ($candidato instanceof CandidatoDocente) {
-            return ! empty($candidato->titulo) && $candidato->experiencia_anios !== null;
+            return ! empty($candidato->titulo)
+                && $candidato->experiencia_anios !== null
+                && $candidato->materias()->exists();
         }
 
         $postulacion = $candidato->postulacion;

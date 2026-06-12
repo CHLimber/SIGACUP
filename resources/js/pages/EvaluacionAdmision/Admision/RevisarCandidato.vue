@@ -48,6 +48,7 @@ interface CandidatoData {
     experiencia_anios?: number | null;
     tiene_diplomado?: boolean;
     tiene_maestria?: boolean;
+    materias?: { codigo: string; nombre: string }[];
     created_at: string;
 }
 
@@ -276,6 +277,17 @@ function volver() {
                                 <span v-if="candidato.tiene_maestria" class="ml-1 inline-flex rounded-full bg-purple-100 px-2 py-0.5 text-xs font-semibold text-purple-700">Maestría</span>
                                 <span v-if="candidato.tiene_diplomado" class="ml-1 inline-flex rounded-full bg-blue-100 px-2 py-0.5 text-xs font-semibold text-blue-700">Diplomado</span>
                                 <span v-if="!candidato.tiene_diplomado && !candidato.tiene_maestria" class="ml-1 text-xs text-gray-400">Ninguna declarada</span>
+                            </p>
+                            <p class="sm:col-span-2">
+                                <strong>Materias a las que postula:</strong>
+                                <span
+                                    v-for="m in candidato.materias ?? []"
+                                    :key="m.codigo"
+                                    class="ml-1 inline-flex rounded-full bg-gray-100 px-2 py-0.5 text-xs font-semibold text-gray-700"
+                                >
+                                    {{ m.nombre }}
+                                </span>
+                                <span v-if="!candidato.materias || candidato.materias.length === 0" class="ml-1 italic text-amber-600">Ninguna declarada</span>
                             </p>
                         </template>
                     </div>

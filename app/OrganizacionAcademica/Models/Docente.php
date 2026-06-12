@@ -2,6 +2,7 @@
 
 namespace App\OrganizacionAcademica\Models;
 
+use App\AdministracionSistema\Models\Materia;
 use App\Models\User;
 use App\SeguridadAcceso\Concerns\RegistraBitacora;
 use Illuminate\Database\Eloquent\Model;
@@ -17,7 +18,7 @@ class Docente extends Model
     protected $table = 'docente';
 
     protected $fillable = [
-        'user_id', 'titulo', 'experiencia_anios', 'tiene_diplomado', 'tiene_maestria',
+        'user_id', 'titulo', 'experiencia_anios', 'tiene_diplomado', 'tiene_maestria', 'activo',
     ];
 
     protected function casts(): array
@@ -26,6 +27,7 @@ class Docente extends Model
             'tiene_diplomado' => 'boolean',
             'tiene_maestria' => 'boolean',
             'experiencia_anios' => 'integer',
+            'activo' => 'boolean',
         ];
     }
 
@@ -42,6 +44,13 @@ class Docente extends Model
     public function grupos(): BelongsToMany
     {
         return $this->belongsToMany(Grupo::class, 'docente_grupo', 'docente_id', 'grupo_id')
+            ->withTimestamps();
+    }
+
+    /** Materias que el docente está habilitado para dictar. */
+    public function materias(): BelongsToMany
+    {
+        return $this->belongsToMany(Materia::class, 'docente_materia', 'docente_id', 'codigo_materia', 'id', 'codigo')
             ->withTimestamps();
     }
 }

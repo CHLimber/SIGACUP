@@ -247,25 +247,25 @@ class Gestion2026_1Seeder extends Seeder
     {
         $defs = [
             // LIN001
-            ['Patricia',  'Soruco Antezana',   'F', 7_700_001, 'Magíster en Lingüística Aplicada',        12, true,  true,  'LIN001'],
+            ['Patricia',  'Soruco Antezana',   'F', 7_700_001, 'Licenciada en Ciencias de la Educación',  12, true,  true,  'LIN001'],
             ['Gonzalo',   'Ferrufino Becerra', 'M', 7_700_002, 'Licenciado en Idiomas',                    7, true,  false, 'LIN001'],
-            ['Lucía',     'Landivar Soria',    'F', 7_700_003, 'Magíster en Literatura',                  10, true,  true,  'LIN001'],
-            ['Marco',     'Villarroel Tola',   'M', 7_700_004, 'Licenciado en Comunicación',               5, false, false, 'LIN001'],
+            ['Lucía',     'Landivar Soria',    'F', 7_700_003, 'Profesora de Lenguaje y Literatura',      10, true,  true,  'LIN001'],
+            ['Marco',     'Villarroel Tola',   'M', 7_700_004, 'Licenciado en Comunicación Social',        5, false, false, 'LIN001'],
             // MAT001
-            ['Elena',     'Cuellar Vega',      'F', 7_700_005, 'Magíster en Matemáticas',                 16, true,  true,  'MAT001'],
-            ['Andrés',    'Nogales Castillo',  'M', 7_700_006, 'Ingeniero Matemático',                     9, true,  false, 'MAT001'],
+            ['Elena',     'Cuellar Vega',      'F', 7_700_005, 'Licenciada en Matemáticas',               16, true,  true,  'MAT001'],
+            ['Andrés',    'Nogales Castillo',  'M', 7_700_006, 'Ingeniero Civil',                          9, true,  false, 'MAT001'],
             ['Verónica',  'Zeballos Illanes',  'F', 7_700_007, 'Licenciada en Matemáticas',                6, false, false, 'MAT001'],
-            ['Rodrigo',   'Paniagua Quiroga',  'M', 7_700_008, 'Magíster en Estadística',                 14, true,  true,  'MAT001'],
+            ['Rodrigo',   'Paniagua Quiroga',  'M', 7_700_008, 'Profesor de Matemática',                  14, true,  true,  'MAT001'],
             // INF001
-            ['Sergio',    'Guzmán Ponce',      'M', 7_700_009, 'Magíster en Ingeniería de Software',      15, true,  true,  'INF001'],
+            ['Sergio',    'Guzmán Ponce',      'M', 7_700_009, 'Ingeniero de Sistemas',                   15, true,  true,  'INF001'],
             ['Karina',    'Ibáñez Arancibia',  'F', 7_700_010, 'Ingeniera Informática',                    8, true,  false, 'INF001'],
             ['Fabio',     'Justiniano Bernal', 'M', 7_700_011, 'Ingeniero de Sistemas',                    6, false, false, 'INF001'],
-            ['Daniela',   'Arispe Carvajal',   'F', 7_700_012, 'Magíster en Ciencia de Datos',            11, true,  true,  'INF001'],
+            ['Daniela',   'Arispe Carvajal',   'F', 7_700_012, 'Ingeniera de Sistemas',                   11, true,  true,  'INF001'],
             // FIS001
-            ['Hugo',      'Soruco Delgado',    'M', 7_700_013, 'Magíster en Física',                      13, true,  true,  'FIS001'],
+            ['Hugo',      'Soruco Delgado',    'M', 7_700_013, 'Licenciado en Física',                    13, true,  true,  'FIS001'],
             ['Brenda',    'Becerra Espinoza',  'F', 7_700_014, 'Licenciada en Física',                     7, false, false, 'FIS001'],
-            ['Iván',      'Landivar Fuentes',  'M', 7_700_015, 'Ingeniero en Electrónica',                 5, true,  false, 'FIS001'],
-            ['Gabriela',  'Villarroel Gonzales', 'F', 7_700_016, 'Magíster en Física Aplicada',            10, true,  true,  'FIS001'],
+            ['Iván',      'Landivar Fuentes',  'M', 7_700_015, 'Ingeniero Electrónico',                    5, true,  false, 'FIS001'],
+            ['Gabriela',  'Villarroel Gonzales', 'F', 7_700_016, 'Profesora de Física',                    10, true,  true,  'FIS001'],
         ];
 
         $hashPwd = Hash::make('Docente2026A!');
@@ -328,6 +328,20 @@ class Gestion2026_1Seeder extends Seeder
                 'experiencia_anios' => $exp,
                 'tiene_diplomado' => $diplomado,
                 'tiene_maestria' => $maestria,
+                'created_at' => $this->nowStr,
+                'updated_at' => $this->nowStr,
+            ]);
+
+            DB::table('candidato_docente_materia')->insert([
+                'candidato_docente_id' => $candDocenteId,
+                'codigo_materia' => $materia,
+                'created_at' => $this->nowStr,
+                'updated_at' => $this->nowStr,
+            ]);
+
+            DB::table('docente_materia')->insert([
+                'docente_id' => $docenteId,
+                'codigo_materia' => $materia,
                 'created_at' => $this->nowStr,
                 'updated_at' => $this->nowStr,
             ]);

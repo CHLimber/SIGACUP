@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { Head, router, usePage } from '@inertiajs/vue3';
-import { AlertTriangle, Mic, MicOff, Send, Sparkles, Table as TableIcon } from 'lucide-vue-next';
-import { computed, onBeforeUnmount, ref } from 'vue';
+import { AlertTriangle, FileSpreadsheet, FileText, Mic, MicOff, Send, Sparkles, Table as TableIcon } from 'lucide-vue-next';
+import { computed, onBeforeUnmount, onMounted, ref } from 'vue';
 import { dashboard } from '@/routes';
 
 interface ColumnaMeta {
@@ -43,7 +43,10 @@ const resultado = computed<AsistenteResultado | null>(
     () => (page.props.flash as { asistente_resultado?: AsistenteResultado } | undefined)?.asistente_resultado ?? null,
 );
 
-// ── Reconocimiento de voz (Web Speech API, gratuito en el navegador) ──────
+// ── Dictado por voz (Web Speech API del navegador, sin servidor) ──────────────
+// El reconocimiento ocurre en el navegador (gratuito). Requiere Chrome/Edge oficial
+// y contexto seguro (HTTPS o localhost). Si el navegador no puede contactar el
+// servicio de reconocimiento de Google devuelve el error "network".
 type SpeechRecognitionLike = {
     lang: string;
     interimResults: boolean;
@@ -51,20 +54,47 @@ type SpeechRecognitionLike = {
     start: () => void;
     stop: () => void;
     onresult: ((e: { results: ArrayLike<ArrayLike<{ transcript: string }>> }) => void) | null;
-    onerror: (() => void) | null;
+    onerror: ((e: { error?: string }) => void) | null;
     onend: (() => void) | null;
 };
 
-const SpeechRecognition =
-    (window as unknown as { SpeechRecognition?: new () => SpeechRecognitionLike; webkitSpeechRecognition?: new () => SpeechRecognitionLike })
-        .SpeechRecognition ??
-    (window as unknown as { webkitSpeechRecognition?: new () => SpeechRecognitionLike }).webkitSpeechRecognition;
-
-const vozDisponible = !!SpeechRecognition;
+// El acceso a `window` se difiere a onMounted: el componente también se renderiza
+// en el servidor (SSR), donde `window` no existe.
+let SpeechRecognitionCtor: (new () => SpeechRecognitionLike) | undefined;
+const vozDisponible = ref(false);
+const vozError = ref('');
 let recognition: SpeechRecognitionLike | null = null;
+let contextoSeguro = false;
+
+onMounted(() => {
+    SpeechRecognitionCtor =
+        (window as unknown as { SpeechRecognition?: new () => SpeechRecognitionLike; webkitSpeechRecognition?: new () => SpeechRecognitionLike })
+            .SpeechRecognition ??
+        (window as unknown as { webkitSpeechRecognition?: new () => SpeechRecognitionLike }).webkitSpeechRecognition;
+    vozDisponible.value = !!SpeechRecognitionCtor;
+    contextoSeguro = window.isSecureContext || ['localhost', '127.0.0.1'].includes(window.location.hostname);
+});
+
+function mensajeError(codigo?: string): string {
+    switch (codigo) {
+        case 'not-allowed':
+        case 'service-not-allowed':
+            return 'Permiso de micrófono denegado. Habilitá el micrófono para este sitio en el navegador.';
+        case 'no-speech':
+            return 'No se detectó voz. Probá de nuevo y hablá cerca del micrófono.';
+        case 'audio-capture':
+            return 'No se encontró ningún micrófono. Verificá que haya uno conectado.';
+        case 'network':
+            return 'El navegador no pudo contactar el servicio de voz de Google. Usá Google Chrome oficial; si persiste, escribí la consulta.';
+        case 'aborted':
+            return '';
+        default:
+            return 'No se pudo iniciar el dictado por voz. Probá de nuevo.';
+    }
+}
 
 function toggleVoz() {
-    if (!SpeechRecognition) {
+    if (!SpeechRecognitionCtor) {
         return;
     }
 
@@ -74,7 +104,15 @@ function toggleVoz() {
         return;
     }
 
-    recognition = new SpeechRecognition();
+    if (!contextoSeguro) {
+        vozError.value =
+            'El dictado por voz requiere una conexión segura (HTTPS) o acceder por localhost. Si entraste por una IP de red, el navegador bloquea el micrófono.';
+
+        return;
+    }
+
+    vozError.value = '';
+    recognition = new SpeechRecognitionCtor();
     recognition.lang = 'es-ES';
     recognition.interimResults = false;
     recognition.continuous = false;
@@ -85,15 +123,21 @@ function toggleVoz() {
             .join(' ');
         consulta.value = (consulta.value ? consulta.value + ' ' : '') + texto;
     };
-    recognition.onerror = () => {
+    recognition.onerror = (e) => {
+        vozError.value = mensajeError(e?.error);
         escuchando.value = false;
     };
     recognition.onend = () => {
         escuchando.value = false;
     };
 
-    escuchando.value = true;
-    recognition.start();
+    try {
+        escuchando.value = true;
+        recognition.start();
+    } catch {
+        escuchando.value = false;
+        vozError.value = 'No se pudo acceder al micrófono. Probá de nuevo.';
+    }
 }
 
 onBeforeUnmount(() => recognition?.stop());
@@ -121,12 +165,45 @@ function usarEjemplo(texto: string) {
     enviar();
 }
 
+// ── Exportación (reutiliza las rutas de exportación de reportes) ───────────
+// Aplana el objeto de filtros a pares filtros[key][sub]=valor para el query string.
+function aplanarFiltros(obj: Record<string, unknown>, prefijo: string, params: URLSearchParams) {
+    for (const [key, valor] of Object.entries(obj)) {
+        if (valor === null || valor === undefined || valor === '') {
+            continue;
+        }
+
+        const clave = `${prefijo}[${key}]`;
+
+        if (typeof valor === 'object' && !Array.isArray(valor)) {
+            aplanarFiltros(valor as Record<string, unknown>, clave, params);
+        } else {
+            params.set(clave, String(valor));
+        }
+    }
+}
+
+function exportar(formato: 'csv' | 'pdf') {
+    if (!resultado.value) {
+        return;
+    }
+
+    const params = new URLSearchParams();
+    params.set('tipo', 'personalizado');
+    params.set('reporte', resultado.value.reporte.key);
+    aplanarFiltros(resultado.value.filtros, 'filtros', params);
+
+    window.location.href = `/administracion/reportes/exportar/${formato}?${params.toString()}`;
+}
+
 // ── Presentación de celdas ───────────────────────────────────────────────
 const ESTADO_CLASES: Record<string, string> = {
     admitido: 'bg-green-100 text-green-700',
     pagado: 'bg-green-100 text-green-700',
     completado: 'bg-green-100 text-green-700',
+    sin_cupo: 'bg-amber-100 text-amber-700',
     no_admitido: 'bg-red-100 text-red-700',
+    reprobado: 'bg-red-100 text-red-700',
     rechazado: 'bg-red-100 text-red-700',
     pendiente: 'bg-gray-100 text-gray-600',
 };
@@ -203,6 +280,9 @@ function mostrar(valor: unknown): string {
                     <p v-if="escuchando" class="text-xs font-medium text-red-600">
                         🎙 Escuchando… hablá ahora.
                     </p>
+                    <p v-else-if="vozError" class="text-xs font-medium text-amber-600">
+                        {{ vozError }}
+                    </p>
                     <p v-else-if="!vozDisponible" class="text-xs text-gray-400">
                         El dictado por voz no está disponible en este navegador (usá Chrome/Edge).
                     </p>
@@ -258,7 +338,27 @@ function mostrar(valor: unknown): string {
                     <h3 class="flex items-center gap-2 text-sm font-semibold text-gray-700">
                         <TableIcon class="h-4 w-4 text-[#073b75]" /> Resultados
                     </h3>
-                    <span class="text-xs text-gray-500">{{ resultado.total }} registro(s)</span>
+                    <div class="flex items-center gap-2">
+                        <button
+                            v-if="resultado.total > 0"
+                            type="button"
+                            class="inline-flex items-center gap-1.5 rounded-md border border-green-200 bg-green-50 px-2.5 py-1 text-xs font-medium text-green-700 transition hover:bg-green-100"
+                            title="Exportar a Excel (CSV)"
+                            @click="exportar('csv')"
+                        >
+                            <FileSpreadsheet class="h-3.5 w-3.5" /> Excel
+                        </button>
+                        <button
+                            v-if="resultado.total > 0"
+                            type="button"
+                            class="inline-flex items-center gap-1.5 rounded-md border border-red-200 bg-red-50 px-2.5 py-1 text-xs font-medium text-red-700 transition hover:bg-red-100"
+                            title="Exportar a PDF"
+                            @click="exportar('pdf')"
+                        >
+                            <FileText class="h-3.5 w-3.5" /> PDF
+                        </button>
+                        <span class="text-xs text-gray-500">{{ resultado.total }} registro(s)</span>
+                    </div>
                 </div>
                 <div class="overflow-x-auto">
                     <table class="w-full text-sm">

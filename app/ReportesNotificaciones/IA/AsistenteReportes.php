@@ -3,6 +3,7 @@
 namespace App\ReportesNotificaciones\IA;
 
 use App\ReportesNotificaciones\ReporteRegistry;
+use Illuminate\Http\Client\Response;
 use Illuminate\Support\Facades\Http;
 use RuntimeException;
 
@@ -52,8 +53,7 @@ class AsistenteReportes
         ]);
 
         if ($respuesta->failed()) {
-            $detalle = $respuesta->json('error.message') ?? 'Error desconocido';
-            throw new RuntimeException('La IA no pudo procesar la consulta: '.$detalle);
+            throw new RuntimeException($this->mensajeError($respuesta, 'La IA no pudo procesar la consulta'));
         }
 
         $toolUse = collect($respuesta->json('content', []))
@@ -64,6 +64,32 @@ class AsistenteReportes
         }
 
         return $this->normalizar($toolUse['input']);
+    }
+
+    /**
+     * Traduce los errores de la API de Anthropic a mensajes claros en español.
+     * En especial el 429 (límite de solicitudes) y el 529 (servicio sobrecargado).
+     */
+    private function mensajeError(Response $respuesta, string $contexto): string
+    {
+        if ($respuesta->status() === 429) {
+            $segundos = (int) $respuesta->header('retry-after');
+            $espera = $segundos > 0 ? " Reintentá en {$segundos} segundos." : ' Esperá un momento y volvé a intentar.';
+
+            return 'Se alcanzó el límite de solicitudes de la IA (rate limit de Anthropic).'.$espera;
+        }
+
+        if ($respuesta->status() === 529) {
+            return 'El servicio de IA está temporalmente sobrecargado. Esperá unos segundos y volvé a intentar.';
+        }
+
+        if ($respuesta->status() === 401) {
+            return 'La API key de Anthropic es inválida. Revisá ANTHROPIC_API_KEY en el archivo .env.';
+        }
+
+        $detalle = $respuesta->json('error.message') ?? 'Error desconocido';
+
+        return $contexto.': '.$detalle;
     }
 
     /** Catálogo de reportes serializado para que el modelo conozca qué puede consultar. */
@@ -99,10 +125,24 @@ class AsistenteReportes
           tipo `select`, usá el `value` (lado izquierdo del `=`), no la etiqueta. Para `text` usá texto libre.
           Para rangos (`numberrange`/`daterange`) usá objetos {min,max} o {desde,hasta}.
         - Si el usuario menciona un nombre de profesor, carrera o materia, mapéalo al filtro o búsqueda
-          correspondiente del reporte.
+          correspondiente del reporte y rellená SIEMPRE el filtro adecuado si la consulta pide una
+          condición concreta.
         - `dimension` debe ser una key de dimensión válida del reporte (para el gráfico).
         - `explicacion`: una frase breve en español explicando qué vas a mostrar.
         - Si la consulta no corresponde a ningún reporte, elegí el más cercano y acláralo en la explicación.
+
+        Reglas de negocio del proceso de admisión (importantes):
+        - La NOTA MÍNIMA DE APROBACIÓN es 60. "Reprobado" significa nota menor a 60; "aprobado" es 60 o más.
+        - Un postulante REPRUEBA si AL MENOS UNA de sus materias queda por debajo de 60, sin importar su
+          promedio. Para listar postulantes/estudiantes reprobados usá el reporte `postulaciones` con el
+          filtro `resultado_final` = `reprobado` (NO uses el reporte de calificaciones para esto, salvo que
+          pidan explícitamente notas/exámenes individuales por materia).
+        - "Se quedó SIN CARRERA / SIN CUPO aunque aprobó" (aprobó todas sus materias pero no consiguió cupo
+          en ninguna de sus carreras de preferencia): usá el reporte `postulaciones` con el filtro
+          `resultado_final` = `sin_cupo`.
+        - "Admitidos" = `resultado_final` = `admitido` (o `estado_admision` = `admitido`).
+        - Si piden notas o exámenes reprobados por materia (nivel calificación individual), usá el reporte
+          `calificaciones` con el filtro de nota `{"max": 59}`.
 
         Catálogo de reportes disponibles:
         {$catalogo}
@@ -141,12 +181,31 @@ class AsistenteReportes
 
         return [
             'reporte' => $reporte->key(),
-            'filtros' => is_array($input['filtros'] ?? null) ? $input['filtros'] : [],
+            'filtros' => $this->parsearFiltros($input['filtros'] ?? null),
             'columnas' => is_array($input['columnas'] ?? null) ? array_values(array_filter($input['columnas'])) : [],
             'sort' => $input['sort'] ?? null,
             'dir' => ($input['dir'] ?? 'asc') === 'desc' ? 'desc' : 'asc',
             'dimension' => $input['dimension'] ?? null,
             'explicacion' => (string) ($input['explicacion'] ?? 'Reporte generado a partir de tu consulta.'),
         ];
+    }
+
+    /**
+     * Claude devuelve `filtros` como objeto (array asociativo en PHP). Se acepta también
+     * un string JSON por robustez. Devuelve siempre un mapa key→valor.
+     */
+    private function parsearFiltros(mixed $filtros): array
+    {
+        if (is_array($filtros)) {
+            return $filtros;
+        }
+
+        if (is_string($filtros) && trim($filtros) !== '') {
+            $decoded = json_decode($filtros, true);
+
+            return is_array($decoded) ? $decoded : [];
+        }
+
+        return [];
     }
 }

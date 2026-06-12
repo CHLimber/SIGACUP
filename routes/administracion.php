@@ -27,6 +27,7 @@ Route::middleware(['auth', 'verified'])->prefix('administracion')->group(functio
         Route::get('/', [DocentesController::class, 'index'])->name('index');
         Route::get('{user}/edit', [DocentesController::class, 'edit'])->name('edit');
         Route::patch('{user}', [DocentesController::class, 'update'])->name('update');
+        Route::patch('{user}/toggle-activo', [DocentesController::class, 'toggleActivo'])->name('toggle-activo');
         Route::get('documento/descargar', [DocentesController::class, 'descargarDocumento'])->name('descargar-documento');
     });
 

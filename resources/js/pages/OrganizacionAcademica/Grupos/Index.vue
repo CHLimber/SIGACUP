@@ -65,7 +65,9 @@ function ejecutarGenerar() {
     router.post(
         routeGenerar.url(props.gestion),
         {},
-        { onFinish: () => { procesandoGenerar.value = false; } },
+        { onFinish: () => {
+ procesandoGenerar.value = false; 
+} },
     );
 }
 
@@ -74,7 +76,9 @@ function ejecutarLimpiar() {
     procesandoLimpiar.value = true;
     router.delete(
         routeLimpiar.url(props.gestion.id),
-        { onFinish: () => { procesandoLimpiar.value = false; } },
+        { onFinish: () => {
+ procesandoLimpiar.value = false; 
+} },
     );
 }
 

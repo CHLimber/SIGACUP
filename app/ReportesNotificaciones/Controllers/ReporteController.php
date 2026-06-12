@@ -4,6 +4,7 @@ namespace App\ReportesNotificaciones\Controllers;
 
 use App\Http\Controllers\Controller;
 use App\ReportesNotificaciones\Actions\GenerarResumen;
+use App\ReportesNotificaciones\ReporteEstaticoRegistry;
 use App\ReportesNotificaciones\ReporteRegistry;
 use App\ReportesNotificaciones\Reports\AbstractReport;
 use Barryvdh\DomPDF\Facade\Pdf;
@@ -15,7 +16,10 @@ use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class ReporteController extends Controller
 {
-    public function __construct(private readonly ReporteRegistry $registry) {}
+    public function __construct(
+        private readonly ReporteRegistry $registry,
+        private readonly ReporteEstaticoRegistry $estaticos,
+    ) {}
 
     public function resumen(Request $request, GenerarResumen $generar): Response
     {
@@ -34,30 +38,51 @@ class ReporteController extends Controller
 
     public function index(Request $request): Response
     {
+        $tipo = $request->string('tipo')->toString() === 'estatico' ? 'estatico' : 'personalizado';
         $reporteKey = $request->string('reporte')->toString();
-        $reporte = $reporteKey ? $this->registry->obtener($reporteKey) : null;
 
         $params = $this->params($request);
 
         $resultado = null;
-        if ($reporte) {
-            $datos = $reporte->run($params);
-            $resultado = [
-                'reporte' => $reporte->key(),
-                'rows' => $datos['rows'],
-                'total' => $datos['total'],
-                'resumen' => $datos['resumen'],
-                'columnas' => $this->columnasSeleccionadas($reporte, $params['columnas']),
-                'sort' => $params['sort'],
-                'dir' => $params['dir'],
-                'dimension' => $datos['resumen']['dimension'],
-            ];
+        $resultadoEstatico = null;
+        $reporte = null;
+
+        if ($tipo === 'estatico') {
+            $def = $reporteKey ? $this->estaticos->obtener($reporteKey) : null;
+
+            if ($def) {
+                $datos = $this->estaticos->ejecutar($reporteKey);
+                $resultadoEstatico = [
+                    'reporte' => $reporteKey,
+                    'rows' => $datos['rows'],
+                    'total' => $datos['total'],
+                    'columnas' => $def['columnas'],
+                ];
+            }
+        } else {
+            $reporte = $reporteKey ? $this->registry->obtener($reporteKey) : null;
+
+            if ($reporte) {
+                $datos = $reporte->run($params);
+                $resultado = [
+                    'reporte' => $reporte->key(),
+                    'rows' => $datos['rows'],
+                    'total' => $datos['total'],
+                    'resumen' => $datos['resumen'],
+                    'columnas' => $this->columnasSeleccionadas($reporte, $params['columnas']),
+                    'sort' => $params['sort'],
+                    'dir' => $params['dir'],
+                    'dimension' => $datos['resumen']['dimension'],
+                ];
+            }
         }
 
         return Inertia::render('ReportesNotificaciones/Reportes/Index', [
             'reportes' => $this->registry->meta(),
+            'estaticos' => $this->estaticos->meta(),
             'consulta' => [
-                'reporte' => $reporte?->key(),
+                'tipo' => $tipo,
+                'reporte' => $tipo === 'estatico' ? ($resultadoEstatico['reporte'] ?? null) : $reporte?->key(),
                 'filtros' => $params['filtros'],
                 'columnas' => $params['columnas'],
                 'sort' => $params['sort'],
@@ -65,19 +90,17 @@ class ReporteController extends Controller
                 'dimension' => $params['dimension'],
             ],
             'resultado' => $resultado,
+            'resultadoEstatico' => $resultadoEstatico,
         ]);
     }
 
     public function exportarCsv(Request $request): StreamedResponse
     {
-        $reporte = $this->registry->obtener($request->string('reporte')->toString());
-        abort_unless($reporte, 404);
+        $export = $this->datosParaExportar($request);
+        $datos = $export['datos'];
+        $columnas = $export['columnas'];
 
-        $params = $this->params($request);
-        $datos = $reporte->run($params);
-        $columnas = $this->columnasSeleccionadas($reporte, $params['columnas']);
-
-        $nombreArchivo = 'reporte_'.$reporte->key().'_'.now()->format('Ymd_His').'.csv';
+        $nombreArchivo = 'reporte_'.$export['key'].'_'.now()->format('Ymd_His').'.csv';
 
         return response()->streamDownload(function () use ($datos, $columnas) {
             $salida = fopen('php://output', 'w');
@@ -85,7 +108,9 @@ class ReporteController extends Controller
             // BOM para que Excel reconozca UTF-8 con acentos.
             fwrite($salida, "\xEF\xBB\xBF");
 
-            fputcsv($salida, array_column($columnas, 'label'));
+            // El 4º (escape) y 5º (eol) se pasan explícitos: PHP 8.4+ deprecó el
+            // valor por defecto de $escape, y '' evita el escapado no estándar.
+            fputcsv($salida, array_column($columnas, 'label'), ',', '"', '');
 
             foreach ($datos['rows'] as $row) {
                 $linea = [];
@@ -96,7 +121,7 @@ class ReporteController extends Controller
                     }
                     $linea[] = $valor;
                 }
-                fputcsv($salida, $linea);
+                fputcsv($salida, $linea, ',', '"', '');
             }
 
             fclose($salida);
@@ -107,24 +132,58 @@ class ReporteController extends Controller
 
     public function exportarPdf(Request $request)
     {
-        $reporte = $this->registry->obtener($request->string('reporte')->toString());
+        $export = $this->datosParaExportar($request);
+
+        $pdf = Pdf::loadView('reportes.pdf', [
+            'titulo' => $export['label'],
+            'descripcion' => $export['descripcion'],
+            'columnas' => $export['columnas'],
+            'rows' => $export['datos']['rows'],
+            'total' => $export['datos']['total'],
+            'filtros' => $export['filtros'],
+            'fecha' => now()->format('d/m/Y H:i'),
+        ])->setPaper('a4', count($export['columnas']) > 6 ? 'landscape' : 'portrait');
+
+        return $pdf->download('reporte_'.$export['key'].'_'.now()->format('Ymd_His').'.pdf');
+    }
+
+    /**
+     * Resuelve los datos a exportar según el tipo de reporte (estático o
+     * personalizado) indicado en la request.
+     *
+     * @return array{key:string, label:string, descripcion:string, datos:array, columnas:array, filtros:array}
+     */
+    private function datosParaExportar(Request $request): array
+    {
+        $key = $request->string('reporte')->toString();
+
+        if ($request->string('tipo')->toString() === 'estatico') {
+            $def = $this->estaticos->obtener($key);
+            abort_unless($def, 404);
+
+            return [
+                'key' => $key,
+                'label' => $def['label'],
+                'descripcion' => $def['descripcion'],
+                'datos' => $this->estaticos->ejecutar($key),
+                'columnas' => $def['columnas'],
+                'filtros' => [],
+            ];
+        }
+
+        $reporte = $this->registry->obtener($key);
         abort_unless($reporte, 404);
 
         $params = $this->params($request);
-        $datos = $reporte->run($params);
-        $columnas = $this->columnasSeleccionadas($reporte, $params['columnas']);
 
-        $pdf = Pdf::loadView('reportes.pdf', [
-            'titulo' => $reporte->label(),
+        return [
+            'key' => $reporte->key(),
+            'label' => $reporte->label(),
             'descripcion' => $reporte->descripcion(),
-            'columnas' => $columnas,
-            'rows' => $datos['rows'],
-            'total' => $datos['total'],
+            'datos' => $reporte->run($params),
+            'columnas' => $this->columnasSeleccionadas($reporte, $params['columnas']),
             'filtros' => $this->filtrosLegibles($reporte, $params['filtros']),
-            'fecha' => now()->format('d/m/Y H:i'),
-        ])->setPaper('a4', count($columnas) > 6 ? 'landscape' : 'portrait');
-
-        return $pdf->download('reporte_'.$reporte->key().'_'.now()->format('Ymd_His').'.pdf');
+        ];
     }
 
     public function resumenPdf(Request $request, GenerarResumen $generar)

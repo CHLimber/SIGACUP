@@ -46,30 +46,6 @@ const dashboardItem: NavItem = {
 
 const allGroups: NavGroup[] = [
     {
-        title: 'Seguridad y acceso',
-        icon: ShieldCheck,
-        items: [
-            {
-                title: 'Usuarios',
-                href: '/administracion/usuarios',
-                icon: UserCog,
-                permiso: 'usuarios.gestionar',
-            },
-            {
-                title: 'Roles y permisos',
-                href: '/administracion/roles',
-                icon: KeyRound,
-                permiso: 'roles.gestionar',
-            },
-            {
-                title: 'Bitácora',
-                href: '/administracion/bitacora',
-                icon: ScrollText,
-                permiso: 'bitacora.ver',
-            },
-        ],
-    },
-    {
         title: 'Administración del sistema',
         icon: Settings,
         items: [
@@ -150,6 +126,30 @@ const allGroups: NavGroup[] = [
                 href: '/administracion/reportes/ia',
                 icon: Sparkles,
                 permiso: 'reportes.ver',
+            },
+        ],
+    },
+    {
+        title: 'Seguridad y acceso',
+        icon: ShieldCheck,
+        items: [
+            {
+                title: 'Usuarios',
+                href: '/administracion/usuarios',
+                icon: UserCog,
+                permiso: 'usuarios.gestionar',
+            },
+            {
+                title: 'Roles y permisos',
+                href: '/administracion/roles',
+                icon: KeyRound,
+                permiso: 'roles.gestionar',
+            },
+            {
+                title: 'Bitácora',
+                href: '/administracion/bitacora',
+                icon: ScrollText,
+                permiso: 'bitacora.ver',
             },
         ],
     },

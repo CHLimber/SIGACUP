@@ -9,7 +9,7 @@ use Illuminate\Support\Str;
 
 /**
  * Siembra la gestión 2024-2 completa:
- *  - ~1000 candidatos a estudiante con todos los estados del flujo
+ *  - ~800 candidatos a estudiante con todos los estados del flujo
  *  - 16 docentes (4 por materia), con persona, user, candidato_docente y docente
  *  - Grupos (7 por materia × 4 materias = 28), aulas, asignaciones
  *  - Evaluaciones y pagos para admitidos y no-admitidos
@@ -228,25 +228,25 @@ class Gestion2024_2Seeder extends Seeder
         // [nombres, apellido, sexo, CI-base, titulo, exp, diplomado, maestria, materia]
         $docentesDef = [
             // LIN001
-            ['Roberto',  'Paredes García',    'M', 7_000_001, 'Ingeniero de Sistemas',                  12, false, true,  'LIN001'],
-            ['Ana',      'Montoya Vásquez',   'F', 7_000_002, 'Licenciada en Lingüística',               8, true,  false, 'LIN001'],
-            ['Felipe',   'Saavedra Rojas',    'M', 7_000_003, 'Licenciado en Idiomas',                   5, false, false, 'LIN001'],
-            ['Carmen',   'Ríos Blanco',       'F', 7_000_004, 'Magíster en Lingüística Aplicada',       15, true,  true,  'LIN001'],
+            ['Roberto',  'Paredes García',    'M', 7_000_001, 'Licenciado en Ciencias de la Educación', 12, false, true,  'LIN001'],
+            ['Ana',      'Montoya Vásquez',   'F', 7_000_002, 'Licenciada en Idiomas',                   8, true,  false, 'LIN001'],
+            ['Felipe',   'Saavedra Rojas',    'M', 7_000_003, 'Profesor de Lenguaje y Literatura',       5, false, false, 'LIN001'],
+            ['Carmen',   'Ríos Blanco',       'F', 7_000_004, 'Licenciada en Ciencias de la Educación', 15, true,  true,  'LIN001'],
             // MAT001
-            ['Hugo',     'Fernández Cruz',    'M', 7_000_005, 'Ingeniero Matemático',                   10, false, true,  'MAT001'],
+            ['Hugo',     'Fernández Cruz',    'M', 7_000_005, 'Ingeniero Civil',                        10, false, true,  'MAT001'],
             ['Lorena',   'Vega Salinas',      'F', 7_000_006, 'Licenciada en Matemáticas',               7, true,  false, 'MAT001'],
-            ['Jorge',    'Castellón Ponce',   'M', 7_000_007, 'Magíster en Matemáticas',                18, true,  true,  'MAT001'],
-            ['Gustavo',  'Morales Soria',     'M', 7_000_008, 'Ingeniero Industrial',                    6, false, false, 'MAT001'],
+            ['Jorge',    'Castellón Ponce',   'M', 7_000_007, 'Licenciado en Matemáticas',              18, true,  true,  'MAT001'],
+            ['Gustavo',  'Morales Soria',     'M', 7_000_008, 'Profesor de Matemática',                  6, false, false, 'MAT001'],
             // INF001
             ['Carlos',   'Quispe Mamani',     'M', 7_000_009, 'Ingeniero de Sistemas',                   9, false, true,  'INF001'],
             ['Sandra',   'Condori Apaza',     'F', 7_000_010, 'Ingeniera Informática',                  11, true,  false, 'INF001'],
-            ['Andrés',   'Mamani Tola',       'M', 7_000_011, 'Licenciado en Informática',               4, false, false, 'INF001'],
-            ['Daniela',  'López Zenteno',     'F', 7_000_012, 'Magíster en Ciencias de la Computación', 14, true,  true,  'INF001'],
+            ['Andrés',   'Mamani Tola',       'M', 7_000_011, 'Ingeniero de Sistemas',                   4, false, false, 'INF001'],
+            ['Daniela',  'López Zenteno',     'F', 7_000_012, 'Licenciada en Informática',              14, true,  true,  'INF001'],
             // FIS001
-            ['Pablo',    'Vargas Choque',     'M', 7_000_013, 'Ingeniero Físico',                        8, false, false, 'FIS001'],
+            ['Pablo',    'Vargas Choque',     'M', 7_000_013, 'Ingeniero Civil',                         8, false, false, 'FIS001'],
             ['Silvana',  'Torrico Illanes',   'F', 7_000_014, 'Licenciada en Física',                   10, true,  false, 'FIS001'],
-            ['Marco',    'Salazar Quiroga',   'M', 7_000_015, 'Magíster en Física Aplicada',            16, true,  true,  'FIS001'],
-            ['Eduardo',  'Herrera Cabrera',   'M', 7_000_016, 'Ingeniero en Electrónica',                7, false, false, 'FIS001'],
+            ['Marco',    'Salazar Quiroga',   'M', 7_000_015, 'Licenciado en Física',                   16, true,  true,  'FIS001'],
+            ['Eduardo',  'Herrera Cabrera',   'M', 7_000_016, 'Ingeniero Electrónico',                   7, false, false, 'FIS001'],
         ];
 
         $hashPwd = Hash::make('Docente2024!');
@@ -312,6 +312,20 @@ class Gestion2024_2Seeder extends Seeder
                 'experiencia_anios' => $exp,
                 'tiene_diplomado' => $diplomado,
                 'tiene_maestria' => $maestria,
+                'created_at' => $this->nowStr,
+                'updated_at' => $this->nowStr,
+            ]);
+
+            DB::table('candidato_docente_materia')->insert([
+                'candidato_docente_id' => $candDocenteId,
+                'codigo_materia' => $materia,
+                'created_at' => $this->nowStr,
+                'updated_at' => $this->nowStr,
+            ]);
+
+            DB::table('docente_materia')->insert([
+                'docente_id' => $docenteId,
+                'codigo_materia' => $materia,
                 'created_at' => $this->nowStr,
                 'updated_at' => $this->nowStr,
             ]);
@@ -483,8 +497,8 @@ class Gestion2024_2Seeder extends Seeder
             );
         }
 
-        // ── 150 EN REVISIÓN ───────────────────────────────────────────
-        for ($i = 0; $i < 150; $i++) {
+        // ── 30 EN REVISIÓN ────────────────────────────────────────────
+        for ($i = 0; $i < 30; $i++) {
             $c1Idx = $i % 4;
             $carrera1Id = $carreraIds[$c1Idx];
             $carrera2Id = $carreraIds[($c1Idx + 1) % 4];
@@ -509,8 +523,8 @@ class Gestion2024_2Seeder extends Seeder
             );
         }
 
-        // ── 100 REQUIERE CORRECCIONES ─────────────────────────────────
-        for ($i = 0; $i < 100; $i++) {
+        // ── 15 REQUIERE CORRECCIONES ──────────────────────────────────
+        for ($i = 0; $i < 15; $i++) {
             $c1Idx = $i % 4;
             $carrera1Id = $carreraIds[$c1Idx];
             $carrera2Id = $carreraIds[($c1Idx + 2) % 4];

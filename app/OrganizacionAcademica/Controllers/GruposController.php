@@ -411,7 +411,7 @@ class GruposController extends Controller
         $maxPorDocente = (int) ($gestion->parametro('max_grupos_docente') ?? 5);
 
         $grupos = Grupo::where('gestion_id', $gestion->id)
-            ->with(['materia', 'horario', 'docentes'])
+            ->with(['materia', 'horario', 'docentes' => fn ($q) => $q->where('activo', true)])
             ->orderBy('nombre')
             ->orderBy('codigo_materia')
             ->get();
@@ -426,12 +426,14 @@ class GruposController extends Controller
             'docente_id' => $g->docentes->first()?->id,
         ])->values();
 
-        $docentes = Docente::with('user.persona')
+        $docentes = Docente::with(['user.persona', 'materias'])
+            ->where('activo', true)
             ->get()
             ->map(fn (Docente $d) => [
                 'id' => $d->id,
                 'nombre' => $this->nombreDocente($d),
                 'titulo' => $d->titulo,
+                'materias' => $d->materias->pluck('codigo')->all(),
             ])
             ->sortBy('nombre', SORT_NATURAL | SORT_FLAG_CASE)
             ->values();
@@ -500,9 +502,9 @@ class GruposController extends Controller
             return back()->with('flash', ['type' => 'error', 'message' => 'No hay grupos generados en esta gestión.']);
         }
 
-        $docentes = Docente::all();
+        $docentes = Docente::with('materias')->where('activo', true)->get();
         if ($docentes->isEmpty()) {
-            return back()->with('flash', ['type' => 'error', 'message' => 'No hay docentes registrados para asignar.']);
+            return back()->with('flash', ['type' => 'error', 'message' => 'No hay docentes activos registrados para asignar.']);
         }
 
         $carga = [];   // docente_id => cantidad de grupos
@@ -519,6 +521,9 @@ class GruposController extends Controller
         foreach ($grupos->shuffle() as $grupo) {
             $candidatos = $docentes->filter(function (Docente $d) use ($carga, $horariosDoc, $grupo, $max) {
                 if ($carga[$d->id] >= $max) {
+                    return false;
+                }
+                if (! $d->materias->contains('codigo', $grupo->codigo_materia)) {
                     return false;
                 }
                 foreach ($horariosDoc[$d->id] as $h) {
@@ -562,7 +567,7 @@ class GruposController extends Controller
         $mensaje = "Asignación automática completada: {$asignados} grupo(s) asignado(s).";
 
         if ($sinAsignar > 0) {
-            $mensaje .= " {$sinAsignar} grupo(s) quedaron sin docente por falta de disponibilidad (límite de {$max} grupos o choque de horarios).";
+            $mensaje .= " {$sinAsignar} grupo(s) quedaron sin docente por falta de disponibilidad (límite de {$max} grupos, choque de horarios o ningún docente activo que dicte la materia).";
 
             return back()->with('flash', ['type' => 'warning', 'message' => $mensaje]);
         }
@@ -574,7 +579,8 @@ class GruposController extends Controller
 
     /**
      * Valida un mapa grupo_id => docente_id contra las reglas:
-     * máximo de grupos por docente y ausencia de choques de horario.
+     * máximo de grupos por docente, docente activo, que dicte la materia
+     * del grupo y ausencia de choques de horario.
      *
      * @param  array<int, int|null>  $mapa
      * @param  Collection<int, Grupo>  $grupos  indexada por id, con horario cargado
@@ -589,14 +595,29 @@ class GruposController extends Controller
             }
         }
 
-        $nombres = $this->nombresDocentes(array_keys($porDocente));
+        $docentes = Docente::with(['user.persona', 'materias'])
+            ->whereIn('id', array_keys($porDocente))
+            ->get()
+            ->keyBy('id');
+
         $errores = [];
 
         foreach ($porDocente as $docenteId => $gruposDoc) {
-            $nombre = $nombres[$docenteId] ?? "Docente #{$docenteId}";
+            $docente = $docentes->get($docenteId);
+            $nombre = $docente ? $this->nombreDocente($docente) : "Docente #{$docenteId}";
+
+            if ($docente && ! $docente->activo) {
+                $errores[] = "{$nombre} está deshabilitado y no puede recibir grupos.";
+            }
 
             if (count($gruposDoc) > $max) {
                 $errores[] = "{$nombre} supera el máximo de {$max} grupos (tiene ".count($gruposDoc).').';
+            }
+
+            foreach ($gruposDoc as $g) {
+                if ($docente && ! $docente->materias->contains('codigo', $g->codigo_materia)) {
+                    $errores[] = "{$nombre} no dicta la materia {$g->codigo_materia} (grupo {$g->nombre}).";
+                }
             }
 
             $total = count($gruposDoc);
@@ -627,20 +648,6 @@ class GruposController extends Controller
         }
 
         return $a->hora_inicio < $b->hora_fin && $b->hora_inicio < $a->hora_fin;
-    }
-
-    /** @param int[] $ids  @return array<int, string> */
-    private function nombresDocentes(array $ids): array
-    {
-        if (empty($ids)) {
-            return [];
-        }
-
-        return Docente::with('user.persona')
-            ->whereIn('id', $ids)
-            ->get()
-            ->mapWithKeys(fn (Docente $d) => [$d->id => $this->nombreDocente($d)])
-            ->all();
     }
 
     private function nombreDocente(Docente $d): string

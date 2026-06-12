@@ -100,16 +100,27 @@ class PortalPagoController extends Controller
         $stripe = new StripeClient(config('services.stripe.secret'));
         $intent = $stripe->paymentIntents->retrieve($paymentIntentId);
 
+        // El intent debe haber sido creado para este pago (crearPaymentIntent graba
+        // pago_id en metadata); de lo contrario podría reutilizarse un intent exitoso ajeno.
+        if ((string) ($intent->metadata['pago_id'] ?? '') !== (string) $pago->id) {
+            return $request->wantsJson()
+                ? response()->json(['error' => 'El identificador del pago no corresponde a esta solicitud.'], 422)
+                : back()->with('flash', ['type' => 'error', 'message' => 'El identificador del pago no corresponde a esta solicitud.']);
+        }
+
         if ($intent->status !== 'succeeded') {
             return $request->wantsJson()
                 ? response()->json(['error' => 'El pago no se completó. Verifica los datos de tu tarjeta.'], 422)
                 : back()->with('flash', ['type' => 'error', 'message' => 'El pago no se completó. Verifica los datos de tu tarjeta.']);
         }
 
-        DB::transaction(function () use ($pago, $intent) {
-            $candidato = $pago->postulacion->candidatoEstudiante;
-            $persona = $candidato->persona;
+        if ((int) $intent->amount !== (int) round((float) $pago->monto_usd * 100)) {
+            return $request->wantsJson()
+                ? response()->json(['error' => 'El monto del pago no coincide con el monto de la matrícula.'], 422)
+                : back()->with('flash', ['type' => 'error', 'message' => 'El monto del pago no coincide con el monto de la matrícula.']);
+        }
 
+        DB::transaction(function () use ($pago, $intent) {
             $pago->update([
                 'estado' => Pago::ESTADO_COMPLETADO,
                 'stripe_payment_intent_id' => $intent->id,
@@ -118,12 +129,16 @@ class PortalPagoController extends Controller
 
             $pago->postulacion->update(['estado_pago' => 'completado']);
 
-            $candidato->update(['estado' => CandidatoEstudiante::ESTADO_PAGADO]);
+            $pago->postulacion->candidatoEstudiante->update(['estado' => CandidatoEstudiante::ESTADO_PAGADO]);
+        });
 
-            Mail::to($persona->email)->send(
+        // Stripe ya cobró: un fallo del correo no debe impedir registrar el pago.
+        try {
+            Mail::to($pago->postulacion->candidatoEstudiante->persona->email)->send(
                 new EstudianteMatriculaConfirmada($pago->fresh()->load('postulacion.candidatoEstudiante.persona')),
             );
-        });
+        } catch (\Throwable) {
+        }
 
         if ($request->wantsJson()) {
             return response()->json(['redirect' => $urlComprobante]);

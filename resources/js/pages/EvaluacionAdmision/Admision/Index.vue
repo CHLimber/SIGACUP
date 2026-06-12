@@ -71,7 +71,11 @@ const busqueda       = ref('');
 // Recarga el servidor al cambiar la gestión
 watch(filtroGestionId, (val) => {
     const params: Record<string, string> = {};
-    if (val) params.gestion_id = val;
+
+    if (val) {
+params.gestion_id = val;
+}
+
     router.get('/administracion/admision', params, { preserveScroll: true, replace: true });
 });
 
@@ -102,8 +106,12 @@ function infoEstado(e: string) {
 const estadosActivos: Estado[] = ['en_revision', 'requiere_correcciones'];
 
 function matchBusqueda(c: CandidatoBase): boolean {
-    if (!busqueda.value.trim()) return true;
+    if (!busqueda.value.trim()) {
+return true;
+}
+
     const q = busqueda.value.toLowerCase();
+
     return (
         c.ci?.toLowerCase().includes(q) ||
         c.apellido?.toLowerCase().includes(q) ||
@@ -153,11 +161,16 @@ function confirmarEliminar(tipo: 'estudiante' | 'docente', c: CandidatoBase) {
 }
 
 function cancelarEliminar() {
-    if (!eliminando.value) candidatoAEliminar.value = null;
+    if (!eliminando.value) {
+candidatoAEliminar.value = null;
+}
 }
 
 function ejecutarEliminar() {
-    if (!candidatoAEliminar.value) return;
+    if (!candidatoAEliminar.value) {
+return;
+}
+
     const { id, tipo } = candidatoAEliminar.value;
     eliminando.value = true;
     router.delete(`/administracion/admision/candidato-${tipo}/${id}`, {

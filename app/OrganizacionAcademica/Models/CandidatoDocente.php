@@ -2,12 +2,14 @@
 
 namespace App\OrganizacionAcademica\Models;
 
+use App\AdministracionSistema\Models\Materia;
 use App\Models\Persona;
 use App\Models\User;
 use App\RegistroInscripcion\Models\RequisitoDocente;
 use App\SeguridadAcceso\Concerns\RegistraBitacora;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class CandidatoDocente extends Model
@@ -63,6 +65,13 @@ class CandidatoDocente extends Model
     public function requisitos(): HasMany
     {
         return $this->hasMany(RequisitoDocente::class);
+    }
+
+    /** Materias a las que postula enseñar. */
+    public function materias(): BelongsToMany
+    {
+        return $this->belongsToMany(Materia::class, 'candidato_docente_materia', 'candidato_docente_id', 'codigo_materia', 'id', 'codigo')
+            ->withTimestamps();
     }
 
     // ── Accessors (delegados a persona) ─────────────────────────────────
