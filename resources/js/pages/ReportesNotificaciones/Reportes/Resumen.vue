@@ -177,6 +177,26 @@ const maxPromMateria = computed(() =>
     Math.max(1, ...props.resumen.porMateria.map((m) => m.promedio)),
 );
 
+// Comparativa entre gestiones (orden cronológico ascendente para leer la
+// evolución de izquierda a derecha). El backend las entrega de la más reciente
+// a la más antigua, por eso se invierte.
+const gestionesCron = computed(() => [...props.resumen.porGestion].reverse());
+
+const maxGestionVal = computed(() =>
+    Math.max(
+        1,
+        ...props.resumen.porGestion.flatMap((g) => [
+            g.postulaciones,
+            g.admitidos,
+        ]),
+    ),
+);
+
+function altura(val: number): string {
+    // Escala a 92% para dejar espacio a la etiqueta numérica sobre cada barra.
+    return Math.max(2, (val / maxGestionVal.value) * 92) + '%';
+}
+
 const kpiCards = computed(() => {
     const k = props.resumen.kpis;
 
@@ -490,6 +510,83 @@ const kpiCards = computed(() => {
                     </tbody>
                 </table>
             </div>
+        </div>
+
+        <!-- Comparativa entre gestiones (gráfico de barras) -->
+        <div
+            class="rounded-xl border border-gray-200 bg-white p-5 shadow-sm"
+        >
+            <div class="mb-4 flex flex-wrap items-center justify-between gap-2">
+                <h3 class="text-sm font-semibold text-gray-700">
+                    Comparativa entre gestiones
+                </h3>
+                <div class="flex items-center gap-4 text-xs text-gray-600">
+                    <span class="flex items-center gap-1.5">
+                        <span
+                            class="h-3 w-3 rounded-sm"
+                            style="background-color: #073b75"
+                        />
+                        Postulaciones
+                    </span>
+                    <span class="flex items-center gap-1.5">
+                        <span
+                            class="h-3 w-3 rounded-sm"
+                            style="background-color: #0e9f6e"
+                        />
+                        Admitidos
+                    </span>
+                </div>
+            </div>
+            <div
+                v-if="gestionesCron.length"
+                class="flex h-52 items-end gap-6 px-2"
+            >
+                <div
+                    v-for="g in gestionesCron"
+                    :key="g.gestion"
+                    class="flex h-full flex-1 flex-col items-center justify-end gap-2"
+                >
+                    <div
+                        class="flex h-full w-full items-end justify-center gap-2"
+                    >
+                        <div class="relative h-full w-[42%]">
+                            <span
+                                class="absolute inset-x-0 text-center text-[10px] font-semibold text-[#073b75]"
+                                :style="{
+                                    bottom: `calc(${altura(g.postulaciones)} + 2px)`,
+                                }"
+                                >{{ g.postulaciones }}</span
+                            >
+                            <div
+                                class="absolute inset-x-0 bottom-0 rounded-t transition-all"
+                                style="background-color: #073b75"
+                                :style="{ height: altura(g.postulaciones) }"
+                            />
+                        </div>
+                        <div class="relative h-full w-[42%]">
+                            <span
+                                class="absolute inset-x-0 text-center text-[10px] font-semibold text-[#0e9f6e]"
+                                :style="{
+                                    bottom: `calc(${altura(g.admitidos)} + 2px)`,
+                                }"
+                                >{{ g.admitidos }}</span
+                            >
+                            <div
+                                class="absolute inset-x-0 bottom-0 rounded-t transition-all"
+                                style="background-color: #0e9f6e"
+                                :style="{ height: altura(g.admitidos) }"
+                            />
+                        </div>
+                    </div>
+                    <span
+                        class="border-t border-gray-100 pt-1.5 text-xs font-medium text-gray-600"
+                        >{{ g.gestion }}</span
+                    >
+                </div>
+            </div>
+            <p v-else class="py-8 text-center text-sm text-gray-400">
+                Sin gestiones registradas.
+            </p>
         </div>
 
         <!-- Tabla por gestión -->

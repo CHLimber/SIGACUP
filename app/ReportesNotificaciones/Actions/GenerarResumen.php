@@ -2,6 +2,7 @@
 
 namespace App\ReportesNotificaciones\Actions;
 
+use App\RegistroInscripcion\Models\Pago;
 use App\ReportesNotificaciones\Reports\GruposReport;
 use App\ReportesNotificaciones\Reports\RendimientoDocenteReport;
 use Illuminate\Support\Facades\DB;
@@ -43,9 +44,9 @@ class GenerarResumen
             ->join('postulacion as p', 'p.id', '=', 'pg.postulacion_id')
             ->when($gestionId, fn ($q) => $q->where('p.gestion_id', $gestionId));
 
-        $recaudacion = (clone $pagos)->where('pg.estado', 'pagado')->sum('pg.monto_bs');
-        $pagosPagados = (clone $pagos)->where('pg.estado', 'pagado')->count();
-        $pagosPendientes = (clone $pagos)->where('pg.estado', 'pendiente')->count();
+        $recaudacion = (clone $pagos)->where('pg.estado', Pago::ESTADO_COMPLETADO)->sum('pg.monto_bs');
+        $pagosPagados = (clone $pagos)->where('pg.estado', Pago::ESTADO_COMPLETADO)->count();
+        $pagosPendientes = (clone $pagos)->where('pg.estado', Pago::ESTADO_PENDIENTE)->count();
 
         $grupos = DB::table('grupo')
             ->when($gestionId, fn ($q) => $q->where('gestion_id', $gestionId))
@@ -207,7 +208,7 @@ class GenerarResumen
 
         $recaudacion = DB::table('pago as pg')
             ->join('postulacion as p', 'p.id', '=', 'pg.postulacion_id')
-            ->where('pg.estado', 'pagado')
+            ->where('pg.estado', Pago::ESTADO_COMPLETADO)
             ->select('p.gestion_id', DB::raw('SUM(pg.monto_bs) as rec'), DB::raw('COUNT(*) as pagos'))
             ->groupBy('p.gestion_id')
             ->get()
