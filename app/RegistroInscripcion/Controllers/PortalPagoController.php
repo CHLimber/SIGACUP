@@ -18,6 +18,7 @@ use Stripe\StripeClient;
 
 class PortalPagoController extends Controller
 {
+    // CU08 — Procesar pago de inscripción (mostrar pantalla de pago con datos del candidato)
     public function show(string $token): Response|RedirectResponse
     {
         $pago = $this->pagoPorToken($token);
@@ -46,6 +47,7 @@ class PortalPagoController extends Controller
         ]);
     }
 
+    // CU08 — Procesar pago de inscripción (crear PaymentIntent en Stripe)
     public function crearPaymentIntent(string $token): JsonResponse
     {
         $pago = $this->pagoPorToken($token);
@@ -77,6 +79,7 @@ class PortalPagoController extends Controller
         return response()->json(['client_secret' => $intent->client_secret]);
     }
 
+    // CU08 — Procesar pago de inscripción | CU20 — Enviar notificaciones automáticas (email de matrícula confirmada)
     public function confirmar(string $token, Request $request): RedirectResponse|JsonResponse
     {
         $pago = $this->pagoPorToken($token);
@@ -151,6 +154,7 @@ class PortalPagoController extends Controller
             ]);
     }
 
+    // CU09 — Generar comprobante de pago (renderiza el HTML del comprobante de matrícula)
     public function comprobante(string $token): HttpResponse
     {
         $pago = $this->pagoPorToken($token);

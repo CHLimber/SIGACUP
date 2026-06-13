@@ -29,6 +29,7 @@ class AsistenteReportes
      *
      * @throws RuntimeException si no hay API key, la API falla o la respuesta es inválida.
      */
+    // CU19 — Consultar reporte por voz con IA (envía la consulta a Claude y traduce la respuesta a parámetros de reporte)
     public function interpretar(string $consulta): array
     {
         $apiKey = config('services.anthropic.key');

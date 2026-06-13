@@ -17,6 +17,7 @@ use Illuminate\Support\Facades\DB;
  */
 class GenerarResumen
 {
+    // CU17 — Generar reporte con filtros dinámicos (calcula todos los KPIs y estadísticas del resumen)
     public function __invoke(?int $gestionId = null): array
     {
         return [

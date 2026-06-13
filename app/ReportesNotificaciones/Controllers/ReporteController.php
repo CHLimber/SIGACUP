@@ -21,6 +21,7 @@ class ReporteController extends Controller
         private readonly ReporteEstaticoRegistry $estaticos,
     ) {}
 
+    // CU17 — Generar reporte con filtros dinámicos (resumen estadístico con KPIs y gráficos)
     public function resumen(Request $request, GenerarResumen $generar): Response
     {
         $gestionId = $request->integer('gestion_id') ?: null;
@@ -36,6 +37,7 @@ class ReporteController extends Controller
         ]);
     }
 
+    // CU17 — Generar reporte con filtros dinámicos (ejecuta el reporte seleccionado con filtros, columnas y ordenamiento)
     public function index(Request $request): Response
     {
         $tipo = $request->string('tipo')->toString() === 'estatico' ? 'estatico' : 'personalizado';
@@ -94,6 +96,7 @@ class ReporteController extends Controller
         ]);
     }
 
+    // CU18 — Exportar reporte (descarga el reporte en formato CSV con BOM UTF-8)
     public function exportarCsv(Request $request): StreamedResponse
     {
         $export = $this->datosParaExportar($request);
@@ -130,6 +133,7 @@ class ReporteController extends Controller
         ]);
     }
 
+    // CU18 — Exportar reporte (genera y descarga el reporte en PDF)
     public function exportarPdf(Request $request)
     {
         $export = $this->datosParaExportar($request);
@@ -186,6 +190,7 @@ class ReporteController extends Controller
         ];
     }
 
+    // CU18 — Exportar reporte (descarga el resumen estadístico en PDF)
     public function resumenPdf(Request $request, GenerarResumen $generar)
     {
         $gestionId = $request->integer('gestion_id') ?: null;

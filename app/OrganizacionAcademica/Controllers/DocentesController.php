@@ -20,6 +20,7 @@ use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class DocentesController extends Controller
 {
+    // CU12 — Gestionar docentes (listar docentes con filtros)
     public function index(Request $request): Response
     {
         $query = User::where('role', UserRole::Docente)
@@ -78,6 +79,7 @@ class DocentesController extends Controller
         ]);
     }
 
+    // CU12 — Gestionar docentes (ver perfil del docente con datos profesionales y documentos)
     public function edit(User $user): Response
     {
         abort_unless($user->role === UserRole::Docente->value, 404);
@@ -135,6 +137,7 @@ class DocentesController extends Controller
         ]);
     }
 
+    // CU12 — Gestionar docentes (actualizar contacto, materias y estado activo del docente)
     public function update(Request $request, User $user): RedirectResponse
     {
         abort_unless($user->role === UserRole::Docente->value, 404);
@@ -172,6 +175,7 @@ class DocentesController extends Controller
         ]);
     }
 
+    // CU12 — Gestionar docentes (habilitar/deshabilitar docente para asignación de grupos)
     public function toggleActivo(User $user): RedirectResponse
     {
         abort_unless($user->role === UserRole::Docente->value, 404);
@@ -195,6 +199,7 @@ class DocentesController extends Controller
         ]);
     }
 
+    // CU12 — Gestionar docentes | CU24 — Gestionar candidato docente (descargar documento del docente)
     public function descargarDocumento(Request $request): StreamedResponse
     {
         $archivo = RequisitoDocente::findOrFail($request->input('id'));

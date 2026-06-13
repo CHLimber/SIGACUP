@@ -14,6 +14,7 @@ class CompletarNotasFaltantes
      * crea con nota_cruda = 0 las evaluaciones que aún no existan.
      * Devuelve el total de evaluaciones creadas.
      */
+    // CU15 — Calcular resultados del CUP | CU16 — Ejecutar proceso de admisión (completa con nota 0 los exámenes no rendidos)
     public function __invoke(Gestion $gestion): int
     {
         $gestion->loadMissing('parametros');

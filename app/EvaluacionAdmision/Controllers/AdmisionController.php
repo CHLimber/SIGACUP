@@ -31,6 +31,7 @@ use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class AdmisionController extends Controller
 {
+    // CU07 — Gestionar postulante | CU24 — Gestionar candidato docente (listado general de admisión)
     public function index(Request $request): Response
     {
         $gestionId = $request->integer('gestion_id') ?: null;
@@ -66,6 +67,7 @@ class AdmisionController extends Controller
         ]);
     }
 
+    // CU07 — Gestionar postulante (revisar documentación del candidato estudiante)
     public function revisarCandidatoEstudiante(CandidatoEstudiante $candidato): Response
     {
         $candidato->load(['persona', 'postulacion.carrera1', 'postulacion.carrera2']);
@@ -73,6 +75,7 @@ class AdmisionController extends Controller
         return $this->renderRevisar($candidato, 'estudiante');
     }
 
+    // CU24 — Gestionar candidato docente (revisar documentación del candidato docente)
     public function revisarCandidatoDocente(CandidatoDocente $candidato): Response
     {
         $candidato->load(['persona', 'materias']);
@@ -80,6 +83,7 @@ class AdmisionController extends Controller
         return $this->renderRevisar($candidato, 'docente');
     }
 
+    // CU06 — Verificar documentación obligatoria (aprobar un requisito individual)
     public function aprobarRequisito(Request $request): RedirectResponse
     {
         $tipo = $request->input('tipo', 'estudiante');
@@ -106,6 +110,7 @@ class AdmisionController extends Controller
         ]);
     }
 
+    // CU06 — Verificar documentación obligatoria (rechazar un requisito con motivo)
     public function rechazarRequisito(Request $request): RedirectResponse
     {
         $data = $request->validate([
@@ -139,6 +144,7 @@ class AdmisionController extends Controller
         ]);
     }
 
+    // CU06 — Verificar documentación obligatoria (el coordinador descarga el archivo de un requisito)
     public function descargarRequisito(Request $request): StreamedResponse
     {
         $tipo = $request->input('tipo', 'estudiante');
@@ -150,6 +156,7 @@ class AdmisionController extends Controller
         return Storage::disk('local')->download($archivo->ruta_archivo, $archivo->nombre_original);
     }
 
+    // CU06 — Verificar documentación obligatoria | CU20 — Enviar notificaciones automáticas (aviso de correcciones al estudiante)
     public function solicitarCorreccionesEstudiante(CandidatoEstudiante $candidato): RedirectResponse
     {
         $candidato->load('persona');
@@ -157,6 +164,7 @@ class AdmisionController extends Controller
         return $this->solicitarCorrecciones($candidato);
     }
 
+    // CU24 — Gestionar candidato docente | CU20 — Enviar notificaciones automáticas (aviso de correcciones al docente)
     public function solicitarCorreccionesDocente(CandidatoDocente $candidato): RedirectResponse
     {
         $candidato->load('persona');
@@ -164,6 +172,7 @@ class AdmisionController extends Controller
         return $this->solicitarCorrecciones($candidato);
     }
 
+    // CU07 — Gestionar postulante | CU08 — Procesar pago de inscripción | CU20 — Enviar notificaciones automáticas (link de pago al estudiante aprobado)
     public function aprobarCandidatoEstudiante(CandidatoEstudiante $candidato): RedirectResponse
     {
         $candidato->load(['persona', 'postulacion.gestion']);
@@ -225,6 +234,7 @@ class AdmisionController extends Controller
         ]);
     }
 
+    // CU07 — Gestionar postulante | CU20 — Enviar notificaciones automáticas (correo de rechazo al estudiante)
     public function rechazarCandidatoEstudiante(Request $request, CandidatoEstudiante $candidato): RedirectResponse
     {
         if (in_array($candidato->estado, [
@@ -259,6 +269,7 @@ class AdmisionController extends Controller
         ]);
     }
 
+    // CU24 — Gestionar candidato docente | CU20 — Enviar notificaciones automáticas (credenciales de acceso al docente aprobado)
     public function aprobarCandidatoDocente(CandidatoDocente $candidato): RedirectResponse
     {
         $candidato->load('persona');
@@ -346,6 +357,7 @@ class AdmisionController extends Controller
         ]);
     }
 
+    // CU24 — Gestionar candidato docente | CU20 — Enviar notificaciones automáticas (correo de rechazo al docente)
     public function rechazarCandidatoDocente(Request $request, CandidatoDocente $candidato): RedirectResponse
     {
         if (in_array($candidato->estado, [CandidatoDocente::ESTADO_APROBADO, CandidatoDocente::ESTADO_RECHAZADO], true)) {
@@ -376,6 +388,7 @@ class AdmisionController extends Controller
         ]);
     }
 
+    // CU07 — Gestionar postulante (eliminar candidato estudiante y todos sus datos)
     public function eliminarCandidatoEstudiante(CandidatoEstudiante $candidato): RedirectResponse
     {
         $nombre = "{$candidato->apellido} {$candidato->nombres}";
@@ -388,6 +401,7 @@ class AdmisionController extends Controller
         ]);
     }
 
+    // CU24 — Gestionar candidato docente (eliminar candidato docente y todos sus datos)
     public function eliminarCandidatoDocente(CandidatoDocente $candidato): RedirectResponse
     {
         $nombre = "{$candidato->apellido} {$candidato->nombres}";

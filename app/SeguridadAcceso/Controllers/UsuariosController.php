@@ -21,6 +21,7 @@ class UsuariosController extends Controller
     /** Roles que NO se generan manualmente (se crean por el flujo de admisión). */
     private const ROLES_AUTOMATICOS = ['docente'];
 
+    // CU21 — Gestionar roles y permisos (listar usuarios con filtros)
     public function index(Request $request): Response
     {
         $query = User::query()
@@ -76,6 +77,7 @@ class UsuariosController extends Controller
         ]);
     }
 
+    // CU21 — Gestionar roles y permisos (crear usuario manualmente)
     public function store(Request $request): RedirectResponse
     {
         $data = $request->validate([
@@ -99,6 +101,7 @@ class UsuariosController extends Controller
         return back()->with('flash', ['type' => 'success', 'message' => "Usuario «{$data['name']}» creado."]);
     }
 
+    // CU21 — Gestionar roles y permisos (editar usuario)
     public function update(Request $request, User $user): RedirectResponse
     {
         $data = $request->validate([
@@ -127,6 +130,7 @@ class UsuariosController extends Controller
         return back()->with('flash', ['type' => 'success', 'message' => 'Usuario actualizado.']);
     }
 
+    // CU21 — Gestionar roles y permisos (descargar plantilla CSV)
     /** Descarga la plantilla CSV para carga masiva. */
     public function plantillaCsv(ImportarUsuariosCsv $importador): StreamedResponse
     {
@@ -137,6 +141,7 @@ class UsuariosController extends Controller
         }, 'plantilla_usuarios.csv', ['Content-Type' => 'text/csv; charset=UTF-8']);
     }
 
+    // CU21 — Gestionar roles y permisos (previsualizar importación CSV)
     /** Recibe el CSV, valida y devuelve la previsualización (válidos + errores). */
     public function previsualizarImport(Request $request, ImportarUsuariosCsv $importador): RedirectResponse
     {
@@ -162,6 +167,7 @@ class UsuariosController extends Controller
         ]);
     }
 
+    // CU21 — Gestionar roles y permisos | CU20 — Enviar notificaciones automáticas (credenciales por correo)
     /** Confirma e inserta los usuarios válidos previsualizados. */
     public function importar(Request $request, ImportarUsuariosCsv $importador): RedirectResponse
     {
@@ -180,6 +186,7 @@ class UsuariosController extends Controller
         ]);
     }
 
+    // CU21 — Gestionar roles y permisos (activar/desactivar cuenta de usuario)
     public function toggleActivo(Request $request, User $user): RedirectResponse
     {
         if ($user->id === $request->user()->id) {
@@ -193,6 +200,7 @@ class UsuariosController extends Controller
         return back()->with('flash', ['type' => 'success', 'message' => "Usuario {$estado}."]);
     }
 
+    // CU21 — Gestionar roles y permisos (eliminar usuario)
     public function destroy(Request $request, User $user): RedirectResponse
     {
         if ($user->id === $request->user()->id) {

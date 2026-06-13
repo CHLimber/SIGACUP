@@ -11,6 +11,7 @@ use Inertia\Response;
 
 class ParametroController extends Controller
 {
+    // CU04 — Configurar parámetros de gestión (formulario de edición de parámetros)
     public function edit(Gestion $gestion): Response
     {
         $parametros = $gestion->parametros->pluck('valor', 'clave');
@@ -21,6 +22,7 @@ class ParametroController extends Controller
         ]);
     }
 
+    // CU04 — Configurar parámetros de gestión (guardar parámetros: montos, pesos de exámenes, nota mínima)
     public function update(UpdateParametrosRequest $request, Gestion $gestion): RedirectResponse
     {
         foreach ($request->validated() as $clave => $valor) {

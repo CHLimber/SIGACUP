@@ -13,6 +13,7 @@ use Inertia\Response;
 
 class RolesController extends Controller
 {
+    // CU21 — Gestionar roles y permisos (listar roles y permisos)
     public function index(): Response
     {
         $roles = Rol::with('permisos:id')
@@ -48,6 +49,7 @@ class RolesController extends Controller
         ]);
     }
 
+    // CU21 — Gestionar roles y permisos (crear rol)
     public function store(Request $request): RedirectResponse
     {
         $data = $request->validate([
@@ -71,6 +73,7 @@ class RolesController extends Controller
         return back()->with('flash', ['type' => 'success', 'message' => "Rol «{$rol->label}» creado."]);
     }
 
+    // CU21 — Gestionar roles y permisos (editar rol y sincronizar permisos)
     public function update(Request $request, Rol $rol): RedirectResponse
     {
         $data = $request->validate([
@@ -90,6 +93,7 @@ class RolesController extends Controller
         return back()->with('flash', ['type' => 'success', 'message' => "Rol «{$rol->label}» actualizado."]);
     }
 
+    // CU21 — Gestionar roles y permisos (eliminar rol)
     public function destroy(Rol $rol): RedirectResponse
     {
         if ($rol->es_sistema) {

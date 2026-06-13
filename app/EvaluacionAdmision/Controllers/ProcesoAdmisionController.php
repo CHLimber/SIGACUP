@@ -14,6 +14,7 @@ use Inertia\Response;
 
 class ProcesoAdmisionController extends Controller
 {
+    // CU16 — Ejecutar proceso de admisión (listar gestiones para seleccionar)
     public function index(): Response
     {
         $gestiones = Gestion::orderByDesc('anio')
@@ -34,6 +35,7 @@ class ProcesoAdmisionController extends Controller
         ]);
     }
 
+    // CU16 — Ejecutar proceso de admisión (ver ranking de postulantes con cupos y resultados)
     public function show(Request $request, Gestion $gestion): Response
     {
         $gestion->loadMissing('parametros');
@@ -121,6 +123,7 @@ class ProcesoAdmisionController extends Controller
         ]);
     }
 
+    // CU16 — Ejecutar proceso de admisión (dispara el algoritmo de admisión por mérito y cupos)
     public function ejecutar(Gestion $gestion, EjecutarProcesoAdmision $ejecutar): RedirectResponse
     {
         if ($gestion->cupos()->where('cupo_max', '>', 0)->doesntExist()) {

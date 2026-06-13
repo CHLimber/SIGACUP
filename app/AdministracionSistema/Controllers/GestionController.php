@@ -36,6 +36,7 @@ class GestionController extends Controller
         'nota_minima_aprobacion',
     ];
 
+    // CU03 — Crear gestión académica (listar gestiones)
     public function index(): Response
     {
         $gestiones = Gestion::orderByDesc('anio')->orderByDesc('semestre')->get();
@@ -48,6 +49,7 @@ class GestionController extends Controller
         ]);
     }
 
+    // CU03 — Crear gestión académica (formulario de creación)
     public function create(): Response
     {
         return Inertia::render('AdministracionSistema/Gestion/Create', [
@@ -55,6 +57,7 @@ class GestionController extends Controller
         ]);
     }
 
+    // CU03 — Crear gestión académica | CU04 — Configurar parámetros de gestión (persiste parámetros y cupos)
     public function store(StoreGestionRequest $request): RedirectResponse
     {
         $validated = $request->validated();
@@ -82,6 +85,7 @@ class GestionController extends Controller
             ->with('flash', ['type' => 'success', 'message' => "Gestión {$gestion->label} creada correctamente."]);
     }
 
+    // CU03 — Crear gestión académica | CU04 — Configurar parámetros de gestión (formulario de edición)
     public function edit(Gestion $gestion): Response
     {
         return Inertia::render('AdministracionSistema/Gestion/Edit', [
@@ -92,6 +96,7 @@ class GestionController extends Controller
         ]);
     }
 
+    // CU03 — Crear gestión académica | CU04 — Configurar parámetros de gestión (actualiza datos, parámetros y cupos)
     public function update(UpdateGestionRequest $request, Gestion $gestion): RedirectResponse
     {
         $validated = $request->validated();
@@ -121,6 +126,7 @@ class GestionController extends Controller
      *
      * @param  array<int|string, int|string>  $cupos  carrera_id => cupo_max
      */
+    // CU04 — Configurar parámetros de gestión (cupos máximos por carrera)
     private function guardarCupos(Gestion $gestion, array $cupos): void
     {
         foreach ($cupos as $carreraId => $cupoMax) {
@@ -131,6 +137,7 @@ class GestionController extends Controller
         }
     }
 
+    // CU03 — Crear gestión académica (eliminar gestión)
     public function destroy(Gestion $gestion): RedirectResponse
     {
         $label = $gestion->label;
@@ -149,6 +156,7 @@ class GestionController extends Controller
             ->with('flash', ['type' => 'success', 'message' => "Gestión {$label} eliminada."]);
     }
 
+    // CU03 — Crear gestión académica (avanzar estado del ciclo de vida de la gestión)
     public function avanzar(Gestion $gestion, CompletarNotasFaltantes $completar): RedirectResponse
     {
         $idx = array_search($gestion->estado, self::ESTADOS);
@@ -175,6 +183,7 @@ class GestionController extends Controller
             ->with('flash', ['type' => 'success', 'message' => $mensaje]);
     }
 
+    // CU03 — Crear gestión académica (retroceder estado de la gestión)
     public function retroceder(Gestion $gestion): RedirectResponse
     {
         $idx = array_search($gestion->estado, self::ESTADOS);

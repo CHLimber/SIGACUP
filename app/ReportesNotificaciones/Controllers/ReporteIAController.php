@@ -20,6 +20,7 @@ class ReporteIAController extends Controller
 {
     public function __construct(private readonly ReporteRegistry $registry) {}
 
+    // CU19 — Consultar reporte por voz con IA (pantalla del asistente con ejemplos de consultas)
     public function index(): Response
     {
         return Inertia::render('ReportesNotificaciones/Reportes/Asistente', [
@@ -35,6 +36,7 @@ class ReporteIAController extends Controller
         ]);
     }
 
+    // CU19 — Consultar reporte por voz con IA (recibe consulta en lenguaje natural, la interpreta y ejecuta el reporte)
     public function consultar(Request $request, AsistenteReportes $asistente): RedirectResponse
     {
         $data = $request->validate([

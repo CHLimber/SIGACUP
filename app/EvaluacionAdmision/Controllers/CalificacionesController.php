@@ -15,6 +15,7 @@ use Inertia\Response;
 
 class CalificacionesController extends Controller
 {
+    // CU14 — Registrar calificaciones (listar grupos disponibles para calificar)
     public function index(): Response
     {
         $grupos = Grupo::with(['gestion', 'materia', 'horario', 'docentes.user'])
@@ -59,6 +60,7 @@ class CalificacionesController extends Controller
      * Vista consolidada: una fila por estudiante y una columna por materia,
      * mostrando la nota final ponderada de cada materia. Filtrable por gestión.
      */
+    // CU15 — Calcular resultados del CUP (vista consolidada con nota ponderada por materia y estado)
     public function ponderadas(Request $request): Response
     {
         $gestiones = Gestion::orderByDesc('anio')->orderByDesc('semestre')->get();
@@ -148,6 +150,7 @@ class CalificacionesController extends Controller
         ]);
     }
 
+    // CU14 — Registrar calificaciones (formulario de carga de notas por grupo)
     public function calificar(Grupo $grupo): Response
     {
         $grupo->load(['gestion.parametros', 'materia', 'horario']);
@@ -200,6 +203,7 @@ class CalificacionesController extends Controller
         ]);
     }
 
+    // CU14 — Registrar calificaciones (persiste las notas de los 3 exámenes por materia y estudiante)
     public function guardar(Request $request, Grupo $grupo): RedirectResponse
     {
         $request->validate([

@@ -20,6 +20,7 @@ use Inertia\Response;
 
 class GruposController extends Controller
 {
+    // CU10 — Calcular y generar grupos automáticamente | CU11 — Gestionar grupo (seleccionar gestión)
     public function seleccionar(): Response
     {
         $estadosValidos = ['cursado', 'admision', 'cerrada'];
@@ -51,6 +52,7 @@ class GruposController extends Controller
         ]);
     }
 
+    // CU10 — Calcular y generar grupos automáticamente | CU11 — Gestionar grupo (resumen de grupos de la gestión)
     public function index(Gestion $gestion): Response
     {
         $gestion->load('parametros');
@@ -78,6 +80,7 @@ class GruposController extends Controller
         ]);
     }
 
+    // CU10 — Calcular y generar grupos automáticamente (distribuye estudiantes, crea grupos y asigna aulas/horarios)
     public function generar(Gestion $gestion): RedirectResponse
     {
         if (! in_array($gestion->estado, ['cursado', 'admision', 'cerrada'], true)) {
@@ -186,6 +189,7 @@ class GruposController extends Controller
      * @param  Collection<int, Horario>  $horarios
      * @return int cantidad de grupos que quedaron sin asignar
      */
+    // CU10 — Calcular y generar grupos automáticamente (asigna aula y horario sin choques)
     private function asignarAulasHorarios(array $grupos, array $conteoPorNombre, int $capacidadMax, Collection $aulas, Collection $horarios): int
     {
         if ($aulas->isEmpty() || $horarios->isEmpty()) {
@@ -250,6 +254,7 @@ class GruposController extends Controller
         return null;
     }
 
+    // CU11 — Gestionar grupo (eliminar todos los grupos de la gestión)
     public function limpiar(Gestion $gestion): RedirectResponse
     {
         $ids = Grupo::where('gestion_id', $gestion->id)->pluck('id');
@@ -273,6 +278,7 @@ class GruposController extends Controller
         ]);
     }
 
+    // CU11 — Gestionar grupo (ver y editar aula/horario de cada materia del paralelo)
     public function configurar(Gestion $gestion, string $nombre): Response
     {
         $grupos = Grupo::where('gestion_id', $gestion->id)
@@ -327,6 +333,7 @@ class GruposController extends Controller
         ]);
     }
 
+    // CU11 — Gestionar grupo (guardar asignación de aulas y horarios validando conflictos)
     public function actualizar(Request $request, Gestion $gestion, string $nombre): RedirectResponse
     {
         $data = $request->validate([
@@ -405,6 +412,7 @@ class GruposController extends Controller
 
     // ── Asignación de docentes ──────────────────────────────────────────────
 
+    // CU13 — Asignar grupos a docente (vista de asignación docente-grupo)
     public function docentes(Gestion $gestion): Response
     {
         $gestion->load('parametros');
@@ -446,6 +454,7 @@ class GruposController extends Controller
         ]);
     }
 
+    // CU13 — Asignar grupos a docente (guardar asignación manual validando límites y horarios)
     public function asignarDocentes(Request $request, Gestion $gestion): RedirectResponse
     {
         $data = $request->validate([
@@ -492,6 +501,7 @@ class GruposController extends Controller
         ]);
     }
 
+    // CU13 — Asignar grupos a docente (asignación automática respetando materia, carga máxima y horarios)
     public function autoAsignarDocentes(Gestion $gestion): RedirectResponse
     {
         $gestion->load('parametros');

@@ -24,6 +24,7 @@ use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class PortalCandidatoController extends Controller
 {
+    // CU05 — Registrar postulante | CU06 — Verificar documentación obligatoria (portal del candidato)
     public function show(string $token): Response
     {
         $candidato = $this->candidatoPorToken($token);
@@ -95,6 +96,7 @@ class PortalCandidatoController extends Controller
         ]);
     }
 
+    // CU23 — Registrar candidato docente (el docente completa su perfil profesional y materias)
     public function guardarDatosProfesionales(Request $request, string $token): RedirectResponse
     {
         $candidato = $this->candidatoPorToken($token);
@@ -137,6 +139,7 @@ class PortalCandidatoController extends Controller
         ]);
     }
 
+    // CU05 — Registrar postulante (el estudiante completa carreras de preferencia y datos académicos)
     public function guardarDatosAcademicos(Request $request, string $token): RedirectResponse
     {
         $candidato = $this->candidatoPorToken($token);
@@ -203,6 +206,7 @@ class PortalCandidatoController extends Controller
         ]);
     }
 
+    // CU06 — Verificar documentación obligatoria (el candidato sube un archivo de requisito)
     public function subir(Request $request, string $token, string $codigo): RedirectResponse
     {
         $candidato = $this->candidatoPorToken($token);
@@ -261,6 +265,7 @@ class PortalCandidatoController extends Controller
         ]);
     }
 
+    // CU06 — Verificar documentación obligatoria (el candidato elimina un archivo ya subido)
     public function eliminar(string $token, string $codigo): RedirectResponse
     {
         $candidato = $this->candidatoPorToken($token);
@@ -279,6 +284,7 @@ class PortalCandidatoController extends Controller
         ]);
     }
 
+    // CU06 — Verificar documentación obligatoria (el candidato envía su documentación a revisión)
     public function enviar(string $token): RedirectResponse
     {
         $candidato = $this->candidatoPorToken($token);
@@ -309,6 +315,7 @@ class PortalCandidatoController extends Controller
         ]);
     }
 
+    // CU06 — Verificar documentación obligatoria (descargar un requisito propio)
     public function descargar(string $token, string $codigo): StreamedResponse
     {
         $candidato = $this->candidatoPorToken($token);
