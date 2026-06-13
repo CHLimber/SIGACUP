@@ -51,10 +51,9 @@ class PagosReport extends AbstractReport
             ['key' => 'buscar',     'label' => 'Buscar (CI / nombre / factura)', 'type' => 'text'],
             ['key' => 'gestion_id', 'label' => 'Gestión', 'type' => 'select', 'options' => $this->opcionesGestion()],
             ['key' => 'estado',     'label' => 'Estado', 'type' => 'select', 'options' => [
-                ['value' => 'pendiente', 'label' => 'Pendiente'],
-                ['value' => 'pagado',    'label' => 'Pagado'],
-                ['value' => 'fallido',   'label' => 'Fallido'],
-                ['value' => 'reembolsado', 'label' => 'Reembolsado'],
+                ['value' => 'pendiente',  'label' => 'Pendiente'],
+                ['value' => 'completado', 'label' => 'Completado'],
+                ['value' => 'fallido',    'label' => 'Fallido'],
             ]],
             ['key' => 'metodo', 'label' => 'Método', 'type' => 'select', 'options' => [
                 ['value' => 'stripe',         'label' => 'Stripe'],

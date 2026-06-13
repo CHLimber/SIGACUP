@@ -17,6 +17,7 @@ class EstudiantesController extends Controller
         CandidatoEstudiante::ESTADO_PAGADO,
     ];
 
+    // CU07 — Gestionar postulante (listar estudiantes aprobados y pagados)
     public function index(Request $request): Response
     {
         $estadoMap = [
@@ -84,6 +85,7 @@ class EstudiantesController extends Controller
         ]);
     }
 
+    // CU07 — Gestionar postulante (ver detalle del estudiante)
     public function edit(CandidatoEstudiante $estudiante): Response
     {
         abort_unless(in_array($estudiante->estado, self::ESTADOS_GESTION, true), 404);
@@ -123,6 +125,7 @@ class EstudiantesController extends Controller
         ]);
     }
 
+    // CU07 — Gestionar postulante (editar datos de contacto del estudiante)
     public function update(Request $request, CandidatoEstudiante $estudiante): RedirectResponse
     {
         abort_unless(in_array($estudiante->estado, self::ESTADOS_GESTION, true), 404);

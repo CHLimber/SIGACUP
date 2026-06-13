@@ -24,6 +24,7 @@ class CalcularNotasPostulacion
      *   nota_minima: float
      * }
      */
+    // CU15 — Calcular resultados del CUP (calcula nota ponderada por materia, promedio y estado aprobado/reprobado)
     public function __invoke(Postulacion $postulacion): array
     {
         $postulacion->loadMissing(['gestion.parametros', 'evaluaciones']);

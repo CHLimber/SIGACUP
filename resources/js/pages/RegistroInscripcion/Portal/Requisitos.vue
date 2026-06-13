@@ -39,10 +39,16 @@ interface DatosProfesionales {
     experiencia_anios: number;
     tiene_diplomado: boolean;
     tiene_maestria: boolean;
+    materias: string[];
 }
 
 interface CarreraDB {
     id: number;
+    nombre: string;
+}
+
+interface MateriaDB {
+    codigo: string;
     nombre: string;
 }
 
@@ -60,6 +66,7 @@ const props = defineProps<{
     datosProfesionales: DatosProfesionales | null;
     datosAcademicos: DatosAcademicos | null;
     carreras: CarreraDB[];
+    materias: MateriaDB[];
     requisitos: RequisitoItem[];
     puedeEnviar: boolean;
     bloqueado: boolean;
@@ -113,7 +120,9 @@ const obligatoriosFaltantes = computed(() =>
 
 const faltaDatosProfesionales = computed(() =>
     props.candidato.tipo === 'docente'
-    && (!props.datosProfesionales?.titulo || props.datosProfesionales.titulo.trim() === ''),
+    && (!props.datosProfesionales?.titulo
+        || props.datosProfesionales.titulo.trim() === ''
+        || (props.datosProfesionales.materias?.length ?? 0) === 0),
 );
 
 const faltaDatosAcademicos = computed(() =>
@@ -227,7 +236,16 @@ const datosForm = useForm({
     experiencia_anios: props.datosProfesionales?.experiencia_anios ?? 0,
     tiene_diplomado:   props.datosProfesionales?.tiene_diplomado ?? false,
     tiene_maestria:    props.datosProfesionales?.tiene_maestria ?? false,
+    materias:          props.datosProfesionales?.materias ?? [] as string[],
 });
+
+function toggleMateriaPostulada(codigo: string) {
+    if (datosForm.materias.includes(codigo)) {
+        datosForm.materias = datosForm.materias.filter((c) => c !== codigo);
+    } else {
+        datosForm.materias = [...datosForm.materias, codigo];
+    }
+}
 
 function puedeEditarDatosProfesionales(): boolean {
     return props.candidato.tipo === 'docente'
@@ -512,6 +530,34 @@ return 'WEBP';
                             />
                             Tengo maestría
                         </label>
+                    </div>
+
+                    <!-- Materias a las que postula enseñar -->
+                    <div class="sm:col-span-2">
+                        <label class="block text-xs font-semibold text-gray-700">Materias que postulas a enseñar *</label>
+                        <p class="mt-0.5 text-xs text-gray-500">
+                            Marca una o varias. Solo podrás recibir grupos de las materias que selecciones.
+                        </p>
+                        <div class="mt-2 grid grid-cols-1 gap-2 sm:grid-cols-2">
+                            <label
+                                v-for="m in materias"
+                                :key="m.codigo"
+                                class="flex items-center gap-2 rounded-md border px-3 py-2 text-sm text-gray-700 transition"
+                                :class="datosForm.materias.includes(m.codigo)
+                                    ? 'border-[#073b75] bg-blue-50/50'
+                                    : 'border-gray-200'"
+                            >
+                                <input
+                                    type="checkbox"
+                                    :checked="datosForm.materias.includes(m.codigo)"
+                                    :disabled="!puedeEditarDatosProfesionales()"
+                                    class="h-4 w-4 rounded border-gray-300 text-[#073b75] focus:ring-[#073b75]"
+                                    @change="toggleMateriaPostulada(m.codigo)"
+                                />
+                                <span>{{ m.nombre }} <span class="font-mono text-xs text-gray-400">({{ m.codigo }})</span></span>
+                            </label>
+                        </div>
+                        <p v-if="datosForm.errors.materias" class="mt-1 text-xs text-red-600">{{ datosForm.errors.materias }}</p>
                     </div>
                 </div>
 

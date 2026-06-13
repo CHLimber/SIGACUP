@@ -30,6 +30,7 @@ class ImportarUsuariosCsv
      *
      * @return array{validos: array<int, array<string, mixed>>, errores: array<int, array{linea:int, datos:array, errores:array<int, string>}>}
      */
+    // CU21 — Gestionar roles y permisos (importación masiva de usuarios)
     public function previsualizar(UploadedFile $archivo): array
     {
         $filas = $this->leerCsv($archivo);
@@ -120,6 +121,7 @@ class ImportarUsuariosCsv
      *
      * @param  array<int, array<string, mixed>>  $filas  filas ya validadas por previsualizar()
      */
+    // CU21 — Gestionar roles y permisos | CU20 — Enviar notificaciones automáticas (credenciales por correo)
     public function importar(array $filas, bool $enviarCorreo = false): int
     {
         $creados = 0;
@@ -156,6 +158,7 @@ class ImportarUsuariosCsv
         return $creados;
     }
 
+    // CU21 — Gestionar roles y permisos (plantilla para importación)
     /** Contenido de la plantilla CSV descargable. */
     public function plantilla(): string
     {

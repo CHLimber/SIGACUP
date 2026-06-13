@@ -30,6 +30,7 @@ class EjecutarProcesoAdmision
      *
      * @return array{procesadas:int, admitidos:int, no_admitidos:int, sin_cupo:int, reprobados:int, por_carrera:array<int,int>}
      */
+    // CU16 — Ejecutar proceso de admisión (algoritmo principal: ranking por mérito, asignación de carreras según cupos)
     public function __invoke(Gestion $gestion): array
     {
         $gestion->loadMissing('parametros');
@@ -135,6 +136,7 @@ class EjecutarProcesoAdmision
      * @param  Collection<int,Evaluacion>  $evaluaciones
      * @return Collection<string,float> [codigo_materia => nota_final]
      */
+    // CU16 — Ejecutar proceso de admisión | CU15 — Calcular resultados del CUP (nota final ponderada por materia)
     private function notasFinalesPorMateria($evaluaciones): Collection
     {
         return $evaluaciones

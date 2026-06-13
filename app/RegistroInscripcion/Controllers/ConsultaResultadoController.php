@@ -17,6 +17,7 @@ use Illuminate\Http\Request;
  */
 class ConsultaResultadoController extends Controller
 {
+    // CU15 — Calcular resultados del CUP (consulta pública por CI desde la página de inicio)
     public function consultar(Request $request, CalcularNotasPostulacion $calcular): RedirectResponse
     {
         $data = $request->validate([

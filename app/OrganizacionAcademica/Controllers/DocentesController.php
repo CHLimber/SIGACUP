@@ -3,6 +3,7 @@
 namespace App\OrganizacionAcademica\Controllers;
 
 use App\AdministracionSistema\Models\Gestion;
+use App\AdministracionSistema\Models\Materia;
 use App\Enums\UserRole;
 use App\Http\Controllers\Controller;
 use App\Models\User;
@@ -19,6 +20,7 @@ use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class DocentesController extends Controller
 {
+    // CU12 — Gestionar docentes (listar docentes con filtros)
     public function index(Request $request): Response
     {
         $query = User::where('role', UserRole::Docente)
@@ -42,7 +44,7 @@ class DocentesController extends Controller
         $docentes = $query
             ->when($request->datos === 'completos', fn ($q) => $q->whereHas('docente'))
             ->when($request->datos === 'pendientes', fn ($q) => $q->whereDoesntHave('docente'))
-            ->with(['persona', 'docente', 'candidatoDocente'])
+            ->with(['persona', 'docente.materias', 'candidatoDocente'])
             ->orderBy('id', 'desc')
             ->paginate(30)
             ->through(fn (User $u) => [
@@ -57,6 +59,8 @@ class DocentesController extends Controller
                 'experiencia_anios' => $u->docente?->experiencia_anios,
                 'tiene_diplomado' => (bool) $u->docente?->tiene_diplomado,
                 'tiene_maestria' => (bool) $u->docente?->tiene_maestria,
+                'activo' => $u->docente ? (bool) $u->docente->activo : true,
+                'materias' => $u->docente?->materias->pluck('nombre')->all() ?? [],
                 'datos_completos' => $u->docente !== null,
                 'candidato_id' => $u->candidatoDocente?->id,
             ]);
@@ -75,12 +79,13 @@ class DocentesController extends Controller
         ]);
     }
 
+    // CU12 — Gestionar docentes (ver perfil del docente con datos profesionales y documentos)
     public function edit(User $user): Response
     {
         abort_unless($user->role === UserRole::Docente->value, 404);
 
         $user->load('persona');
-        $docente = Docente::firstWhere('user_id', $user->id);
+        $docente = Docente::with('materias')->firstWhere('user_id', $user->id);
         $candidato = CandidatoDocente::where('user_id', $user->id)->with('persona')->first();
 
         $documentos = [];
@@ -122,12 +127,17 @@ class DocentesController extends Controller
                 'experiencia_anios' => $docente?->experiencia_anios ?? 0,
                 'tiene_diplomado' => (bool) $docente?->tiene_diplomado,
                 'tiene_maestria' => (bool) $docente?->tiene_maestria,
+                'activo' => $docente ? (bool) $docente->activo : true,
+                'materias' => $docente?->materias->pluck('codigo')->all() ?? [],
             ],
+            'tieneDatosDocente' => $docente !== null,
+            'materiasDisponibles' => Materia::orderBy('nombre')->get(['codigo', 'nombre']),
             'documentos' => $documentos,
             'candidatoId' => $candidato?->id,
         ]);
     }
 
+    // CU12 — Gestionar docentes (actualizar contacto, materias y estado activo del docente)
     public function update(Request $request, User $user): RedirectResponse
     {
         abort_unless($user->role === UserRole::Docente->value, 404);
@@ -135,6 +145,9 @@ class DocentesController extends Controller
         $data = $request->validate([
             'telefono' => 'nullable|string|max:30',
             'direccion' => 'nullable|string|max:500',
+            'materias' => 'sometimes|array',
+            'materias.*' => 'string|exists:materia,codigo',
+            'activo' => 'sometimes|boolean',
         ]);
 
         if ($user->persona) {
@@ -144,12 +157,49 @@ class DocentesController extends Controller
             ]);
         }
 
+        $docente = Docente::firstWhere('user_id', $user->id);
+
+        if ($docente) {
+            if (array_key_exists('activo', $data)) {
+                $docente->update(['activo' => $data['activo']]);
+            }
+
+            if (array_key_exists('materias', $data)) {
+                $docente->materias()->sync($data['materias']);
+            }
+        }
+
         return redirect()->route('docentes.index')->with('flash', [
             'type' => 'success',
             'message' => 'Datos del docente actualizados correctamente.',
         ]);
     }
 
+    // CU12 — Gestionar docentes (habilitar/deshabilitar docente para asignación de grupos)
+    public function toggleActivo(User $user): RedirectResponse
+    {
+        abort_unless($user->role === UserRole::Docente->value, 404);
+
+        $docente = Docente::firstWhere('user_id', $user->id);
+
+        if (! $docente) {
+            return back()->with('flash', [
+                'type' => 'error',
+                'message' => 'El docente aún no tiene datos profesionales registrados.',
+            ]);
+        }
+
+        $docente->update(['activo' => ! $docente->activo]);
+
+        return back()->with('flash', [
+            'type' => 'success',
+            'message' => $docente->activo
+                ? 'Docente habilitado: volverá a considerarse al asignar grupos.'
+                : 'Docente deshabilitado: no se considerará al asignar grupos.',
+        ]);
+    }
+
+    // CU12 — Gestionar docentes | CU24 — Gestionar candidato docente (descargar documento del docente)
     public function descargarDocumento(Request $request): StreamedResponse
     {
         $archivo = RequisitoDocente::findOrFail($request->input('id'));

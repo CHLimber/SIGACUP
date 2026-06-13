@@ -264,25 +264,25 @@ class Gestion2025_1Seeder extends Seeder
     {
         $defs = [
             // LIN001
-            ['Marcelo',   'Flores Aguilar',    'M', 7_500_001, 'Licenciado en Lingüística',               11, false, true,  'LIN001'],
-            ['Natalia',   'Ruiz Campos',        'F', 7_500_002, 'Licenciada en Idiomas Modernos',           6, true,  false, 'LIN001'],
-            ['Rodrigo',   'Ponce Arancibia',    'M', 7_500_003, 'Magíster en Enseñanza del Inglés',        14, true,  true,  'LIN001'],
-            ['Verónica',  'Blanco Medina',      'F', 7_500_004, 'Licenciada en Letras',                     5, false, false, 'LIN001'],
+            ['Marcelo',   'Flores Aguilar',    'M', 7_500_001, 'Licenciado en Idiomas',                   11, false, true,  'LIN001'],
+            ['Natalia',   'Ruiz Campos',        'F', 7_500_002, 'Licenciada en Ciencias de la Educación',   6, true,  false, 'LIN001'],
+            ['Rodrigo',   'Ponce Arancibia',    'M', 7_500_003, 'Profesor de Lenguaje y Literatura',       14, true,  true,  'LIN001'],
+            ['Verónica',  'Blanco Medina',      'F', 7_500_004, 'Licenciada en Comunicación Social',        5, false, false, 'LIN001'],
             // MAT001
-            ['Álvaro',    'Tapia Soria',        'M', 7_500_005, 'Magíster en Matemáticas Puras',           17, true,  true,  'MAT001'],
+            ['Álvaro',    'Tapia Soria',        'M', 7_500_005, 'Licenciado en Matemáticas',               17, true,  true,  'MAT001'],
             ['Silvia',    'Espinoza Reyes',     'F', 7_500_006, 'Licenciada en Matemáticas',                8, false, false, 'MAT001'],
-            ['Omar',      'Molina Cabrera',     'M', 7_500_007, 'Ingeniero Matemático',                     9, true,  false, 'MAT001'],
-            ['Carla',     'Delgado Zenteno',    'F', 7_500_008, 'Magíster en Estadística Aplicada',        13, true,  true,  'MAT001'],
+            ['Omar',      'Molina Cabrera',     'M', 7_500_007, 'Ingeniero Civil',                          9, true,  false, 'MAT001'],
+            ['Carla',     'Delgado Zenteno',    'F', 7_500_008, 'Ingeniera Industrial',                    13, true,  true,  'MAT001'],
             // INF001
             ['Iván',      'Carvajal Tola',      'M', 7_500_009, 'Ingeniero de Sistemas',                   10, false, true,  'INF001'],
-            ['Paola',     'Illanes Vega',       'F', 7_500_010, 'Magíster en Inteligencia Artificial',     15, true,  true,  'INF001'],
+            ['Paola',     'Illanes Vega',       'F', 7_500_010, 'Ingeniera de Sistemas',                   15, true,  true,  'INF001'],
             ['Sebastián', 'Menacho Ríos',       'M', 7_500_011, 'Ingeniero Informático',                    7, false, false, 'INF001'],
-            ['Karina',    'Mercado Chávez',     'F', 7_500_012, 'Licenciada en Ciencias de la Computación', 6, true, false, 'INF001'],
+            ['Karina',    'Mercado Chávez',     'F', 7_500_012, 'Licenciada en Informática',                6, true, false, 'INF001'],
             // FIS001
-            ['Cristian',  'Rivero Balcázar',   'M', 7_500_013, 'Magíster en Física Teórica',              16, true,  true,  'FIS001'],
+            ['Cristian',  'Rivero Balcázar',   'M', 7_500_013, 'Licenciado en Física',                    16, true,  true,  'FIS001'],
             ['Alejandra', 'Antezana Terán',     'F', 7_500_014, 'Licenciada en Física',                     9, false, false, 'FIS001'],
-            ['Raúl',      'Zeballos Paniagua', 'M', 7_500_015, 'Ingeniero en Electrónica',                 8, true,  false, 'FIS001'],
-            ['Fernanda',  'Guzmán Ibáñez',     'F', 7_500_016, 'Magíster en Ciencias Exactas',            12, true,  true,  'FIS001'],
+            ['Raúl',      'Zeballos Paniagua', 'M', 7_500_015, 'Ingeniero Electrónico',                    8, true,  false, 'FIS001'],
+            ['Fernanda',  'Guzmán Ibáñez',     'F', 7_500_016, 'Profesora de Física',                     12, true,  true,  'FIS001'],
         ];
 
         $hashPwd = Hash::make('Docente2025!');
@@ -350,6 +350,20 @@ class Gestion2025_1Seeder extends Seeder
                 'updated_at' => $this->nowStr,
             ]);
 
+            DB::table('candidato_docente_materia')->insert([
+                'candidato_docente_id' => $candDocenteId,
+                'codigo_materia' => $materia,
+                'created_at' => $this->nowStr,
+                'updated_at' => $this->nowStr,
+            ]);
+
+            DB::table('docente_materia')->insert([
+                'docente_id' => $docenteId,
+                'codigo_materia' => $materia,
+                'created_at' => $this->nowStr,
+                'updated_at' => $this->nowStr,
+            ]);
+
             $resultado[$materia][] = $docenteId;
         }
 
@@ -385,12 +399,12 @@ class Gestion2025_1Seeder extends Seeder
     // ── Estudiantes ──────────────────────────────────────────────────────────
 
     /**
-     * Distribución total: 1 100 candidatos
+     * Distribución total: 865 candidatos
      *   480 admitidos  (120 × 4 carreras)
      *   200 no_admitidos (80 reprobados, 60 reprob. por una materia, 60 sin cupo)
      *    70 aprobado_pendiente_pago
-     *   170 en_revision
-     *   110 requiere_correcciones
+     *    30 en_revision
+     *    15 requiere_correcciones
      *    70 rechazados
      */
     private function crearEstudiantes(int $gestionId, array $carreraIds, array $grupoIds): void
@@ -514,8 +528,8 @@ class Gestion2025_1Seeder extends Seeder
             );
         }
 
-        // ── 170 EN REVISIÓN ───────────────────────────────────────────
-        for ($i = 0; $i < 170; $i++) {
+        // ── 30 EN REVISIÓN ────────────────────────────────────────────
+        for ($i = 0; $i < 30; $i++) {
             $this->crearEstudianteCompleto(
                 gestionId: $gestionId,
                 hashPwd: $hashPwd,
@@ -536,8 +550,8 @@ class Gestion2025_1Seeder extends Seeder
             );
         }
 
-        // ── 110 REQUIERE CORRECCIONES ─────────────────────────────────
-        for ($i = 0; $i < 110; $i++) {
+        // ── 15 REQUIERE CORRECCIONES ──────────────────────────────────
+        for ($i = 0; $i < 15; $i++) {
             $this->crearEstudianteCompleto(
                 gestionId: $gestionId,
                 hashPwd: $hashPwd,

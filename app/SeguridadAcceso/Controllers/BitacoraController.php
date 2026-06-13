@@ -12,6 +12,7 @@ use Inertia\Response;
 
 class BitacoraController extends Controller
 {
+    // CU22 — Consultar bitácora de auditoría
     public function index(Request $request): Response
     {
         $filtros = [

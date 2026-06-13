@@ -14,6 +14,7 @@ class AutenticarUsuario
 
     private const DURACIONES = [1, 3, 5, 15]; // minutos por bloqueo consecutivo
 
+    // CU01 — Iniciar sesión
     public function __invoke(Request $request): ?User
     {
         $user = User::where('username', $request->username)->first();

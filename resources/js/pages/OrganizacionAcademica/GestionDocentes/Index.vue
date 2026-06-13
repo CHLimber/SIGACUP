@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { Head, Link, router } from '@inertiajs/vue3';
-import { ChevronLeft, ChevronRight } from 'lucide-vue-next';
-import { computed, ref, watch } from 'vue';
+import { ChevronDown, ChevronLeft, ChevronRight } from 'lucide-vue-next';
+import { computed, onMounted, onUnmounted, ref, watch } from 'vue';
 import { dashboard } from '@/routes';
 
 interface Docente {
@@ -16,6 +16,8 @@ interface Docente {
     experiencia_anios: number | null;
     tiene_diplomado: boolean;
     tiene_maestria: boolean;
+    activo: boolean;
+    materias: string[];
     datos_completos: boolean;
     candidato_id: number | null;
 }
@@ -107,6 +109,31 @@ function limpiarFiltros() {
     busqueda.value        = '';
 }
 
+// ── Activar / desactivar ──────────────────────────────────────────────────────
+function toggleActivo(d: Docente) {
+    const accion = d.activo ? 'deshabilitar' : 'habilitar';
+
+    if (!confirm(`¿Seguro que deseas ${accion} a ${d.apellido} ${d.nombres}? ${d.activo ? 'No se le asignarán grupos mientras esté deshabilitado.' : ''}`)) {
+        return;
+    }
+
+    router.patch(`/administracion/docentes/${d.user_id}/toggle-activo`, {}, { preserveScroll: true });
+}
+
+// ── Dropdown de acciones ──────────────────────────────────────────────────────
+const openDropdownId = ref<number | null>(null);
+
+function toggleDropdown(userId: number) {
+    openDropdownId.value = openDropdownId.value === userId ? null : userId;
+}
+
+function cerrarDropdown() {
+    openDropdownId.value = null;
+}
+
+onMounted(() => document.addEventListener('click', cerrarDropdown));
+onUnmounted(() => document.removeEventListener('click', cerrarDropdown));
+
 // ── Paginación ────────────────────────────────────────────────────────────────
 function irAPagina(page: number) {
     if (page < 1 || page > props.docentes.last_page) {
@@ -147,7 +174,7 @@ pages.push('...');
 <template>
     <Head title="Gestionar Docentes" />
 
-    <div class="flex flex-col gap-6 p-6">
+    <div class="flex flex-col gap-6 p-4 sm:p-6">
         <!-- Encabezado -->
         <div>
             <h1 class="text-2xl font-bold text-gray-900">Gestionar Docentes</h1>
@@ -232,7 +259,8 @@ pages.push('...');
 
         <!-- Tabla -->
         <div class="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
-            <table class="w-full text-sm">
+            <div class="overflow-x-auto">
+            <table class="w-full min-w-[640px] text-sm">
                 <thead>
                     <tr style="background-color: #7b0000;">
                         <th class="px-5 py-3.5 text-left text-xs font-semibold uppercase tracking-wider text-white">CI</th>
@@ -241,12 +269,14 @@ pages.push('...');
                         <th class="px-5 py-3.5 text-left text-xs font-semibold uppercase tracking-wider text-white">Título</th>
                         <th class="px-5 py-3.5 text-left text-xs font-semibold uppercase tracking-wider text-white">Experiencia</th>
                         <th class="px-5 py-3.5 text-left text-xs font-semibold uppercase tracking-wider text-white">Estudios</th>
+                        <th class="px-5 py-3.5 text-left text-xs font-semibold uppercase tracking-wider text-white">Materias</th>
+                        <th class="px-5 py-3.5 text-left text-xs font-semibold uppercase tracking-wider text-white">Estado</th>
                         <th class="px-5 py-3.5 text-right text-xs font-semibold uppercase tracking-wider text-white">Acción</th>
                     </tr>
                 </thead>
                 <tbody class="divide-y divide-gray-100">
                     <tr v-if="docentes.data.length === 0">
-                        <td colspan="7" class="px-5 py-14 text-center text-gray-400">
+                        <td colspan="9" class="px-5 py-14 text-center text-gray-400">
                             No hay docentes que coincidan con los filtros aplicados.
                         </td>
                     </tr>
@@ -278,17 +308,64 @@ pages.push('...');
                             </span>
                             <span v-if="!d.tiene_diplomado && !d.tiene_maestria" class="text-gray-400">—</span>
                         </td>
-                        <td class="px-5 py-4 text-right">
-                            <Link
-                                :href="`/administracion/docentes/${d.user_id}/edit`"
-                                class="rounded-md bg-[#c70e0a] px-3 py-1.5 text-xs font-semibold text-white transition hover:brightness-110"
+                        <td class="px-5 py-4 text-xs">
+                            <div v-if="d.materias.length > 0" class="flex max-w-[220px] flex-wrap gap-1">
+                                <span
+                                    v-for="m in d.materias"
+                                    :key="m"
+                                    class="inline-flex rounded-full bg-gray-100 px-2 py-0.5 font-medium text-gray-700"
+                                >
+                                    {{ m }}
+                                </span>
+                            </div>
+                            <span v-else class="italic text-amber-600">Sin materias</span>
+                        </td>
+                        <td class="px-5 py-4 text-xs">
+                            <span
+                                class="inline-flex rounded-full px-2 py-0.5 font-semibold"
+                                :class="d.activo ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'"
                             >
-                                {{ d.datos_completos ? 'Editar' : 'Completar datos' }} →
-                            </Link>
+                                {{ d.activo ? 'Activo' : 'Deshabilitado' }}
+                            </span>
+                        </td>
+                        <td class="px-5 py-4 text-right">
+                            <div class="relative inline-block text-left">
+                                <button
+                                    type="button"
+                                    class="inline-flex items-center gap-1.5 rounded-md bg-[#c70e0a] px-3 py-1.5 text-xs font-semibold text-white transition hover:brightness-110"
+                                    @click.stop="toggleDropdown(d.user_id)"
+                                >
+                                    Acciones
+                                    <ChevronDown class="h-3.5 w-3.5" />
+                                </button>
+                                <div
+                                    v-if="openDropdownId === d.user_id"
+                                    class="absolute right-0 top-full z-20 mt-1 min-w-[160px] rounded-md border border-gray-200 bg-white py-1 shadow-lg"
+                                    @click.stop
+                                >
+                                    <Link
+                                        :href="`/administracion/docentes/${d.user_id}/edit`"
+                                        class="flex w-full items-center px-4 py-2 text-xs font-medium text-gray-700 hover:bg-gray-50"
+                                        @click="cerrarDropdown"
+                                    >
+                                        {{ d.datos_completos ? 'Editar' : 'Completar datos' }} →
+                                    </Link>
+                                    <button
+                                        v-if="d.datos_completos"
+                                        type="button"
+                                        class="flex w-full items-center px-4 py-2 text-xs font-medium hover:bg-gray-50"
+                                        :class="d.activo ? 'text-red-600' : 'text-green-600'"
+                                        @click="toggleActivo(d); cerrarDropdown()"
+                                    >
+                                        {{ d.activo ? 'Deshabilitar' : 'Habilitar' }}
+                                    </button>
+                                </div>
+                            </div>
                         </td>
                     </tr>
                 </tbody>
             </table>
+            </div>
 
             <!-- Pie de paginación -->
             <div

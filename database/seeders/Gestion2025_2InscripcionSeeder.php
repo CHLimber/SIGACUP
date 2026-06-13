@@ -279,22 +279,22 @@ class Gestion2025_2InscripcionSeeder extends Seeder
     private function crearDocentes(): array
     {
         $defs = [
-            ['Juana',     'Soruco Ferrufino',  'F', 7_600_001, 'Licenciada en Lingüística',                9, false, true,  'LIN001'],
-            ['Cristóbal', 'Landivar Becerra',  'M', 7_600_002, 'Magíster en Lingüística y Literatura',   18, true,  true,  'LIN001'],
+            ['Juana',     'Soruco Ferrufino',  'F', 7_600_001, 'Licenciada en Idiomas',                    9, false, true,  'LIN001'],
+            ['Cristóbal', 'Landivar Becerra',  'M', 7_600_002, 'Licenciado en Ciencias de la Educación', 18, true,  true,  'LIN001'],
             ['Milagros',  'Arispe Justiniano', 'F', 7_600_003, 'Licenciada en Idiomas',                    6, true,  false, 'LIN001'],
-            ['Freddy',    'Villarroel Ortiz',  'M', 7_600_004, 'Licenciado en Letras',                     4, false, false, 'LIN001'],
-            ['Nataly',    'Cuellar Terán',     'F', 7_600_005, 'Magíster en Matemáticas Aplicadas',       14, true,  true,  'MAT001'],
-            ['Rubén',     'Nogales Vásquez',   'M', 7_600_006, 'Ingeniero en Sistemas',                    7, false, false, 'MAT001'],
-            ['Susana',    'Zeballos Campos',   'F', 7_600_007, 'Licenciada en Matemáticas',                8, true,  false, 'MAT001'],
-            ['Ernesto',   'Paniagua Ríos',     'M', 7_600_008, 'Magíster en Investigación Operativa',     16, true,  true,  'MAT001'],
-            ['Gonzalo',   'Guzmán Castillo',   'M', 7_600_009, 'Magíster en Ciencias de la Computación', 13, true,  true,  'INF001'],
+            ['Freddy',    'Villarroel Ortiz',  'M', 7_600_004, 'Profesor de Lenguaje y Literatura',        4, false, false, 'LIN001'],
+            ['Nataly',    'Cuellar Terán',     'F', 7_600_005, 'Licenciada en Matemáticas',               14, true,  true,  'MAT001'],
+            ['Rubén',     'Nogales Vásquez',   'M', 7_600_006, 'Ingeniero Civil',                          7, false, false, 'MAT001'],
+            ['Susana',    'Zeballos Campos',   'F', 7_600_007, 'Profesora de Matemática',                  8, true,  false, 'MAT001'],
+            ['Ernesto',   'Paniagua Ríos',     'M', 7_600_008, 'Ingeniero Industrial',                    16, true,  true,  'MAT001'],
+            ['Gonzalo',   'Guzmán Castillo',   'M', 7_600_009, 'Ingeniero de Sistemas',                   13, true,  true,  'INF001'],
             ['Vanessa',   'Ibáñez Molina',     'F', 7_600_010, 'Ingeniera Informática',                    9, false, false, 'INF001'],
             ['Roly',      'Menacho Peñaranda', 'M', 7_600_011, 'Ingeniero de Sistemas',                    5, true,  false, 'INF001'],
             ['Nathaly',   'Balcázar Cabrera',  'F', 7_600_012, 'Licenciada en Informática',                6, false, false, 'INF001'],
-            ['Mauricio',  'Antezana Soria',    'M', 7_600_013, 'Magíster en Física Nuclear',              15, true,  true,  'FIS001'],
+            ['Mauricio',  'Antezana Soria',    'M', 7_600_013, 'Licenciado en Física',                    15, true,  true,  'FIS001'],
             ['Lissette',  'Urquieta Silva',    'F', 7_600_014, 'Licenciada en Física',                     8, false, false, 'FIS001'],
-            ['Darwin',    'Rivero Lara',       'M', 7_600_015, 'Ingeniero en Electrónica',                 6, true,  false, 'FIS001'],
-            ['Daniela',   'Mercado Pacheco',   'F', 7_600_016, 'Magíster en Astrofísica',                 11, true,  true,  'FIS001'],
+            ['Darwin',    'Rivero Lara',       'M', 7_600_015, 'Ingeniero Electrónico',                    6, true,  false, 'FIS001'],
+            ['Daniela',   'Mercado Pacheco',   'F', 7_600_016, 'Ingeniera Civil',                         11, true,  true,  'FIS001'],
         ];
 
         $hashPwd = Hash::make('Docente2025B!');
@@ -358,6 +358,20 @@ class Gestion2025_2InscripcionSeeder extends Seeder
                 'updated_at' => $this->nowStr,
             ]);
 
+            DB::table('candidato_docente_materia')->insert([
+                'candidato_docente_id' => $candDocId,
+                'codigo_materia' => $materia,
+                'created_at' => $this->nowStr,
+                'updated_at' => $this->nowStr,
+            ]);
+
+            DB::table('docente_materia')->insert([
+                'docente_id' => $docenteId,
+                'codigo_materia' => $materia,
+                'created_at' => $this->nowStr,
+                'updated_at' => $this->nowStr,
+            ]);
+
             $resultado[$materia][] = $docenteId;
         }
 
@@ -390,11 +404,11 @@ class Gestion2025_2InscripcionSeeder extends Seeder
     // ── Candidatos ───────────────────────────────────────────────────────────
 
     /**
-     * Distribución — 1 100 candidatos, todos en flujo de inscripción (sin CUP):
+     * Distribución — 625 candidatos, todos en flujo de inscripción (sin CUP):
      *
-     *   pendiente               80  — solo se registraron, sin documentos ni postulación
-     *   en_revision            300  — documentos enviados, en revisión del admin
-     *   requiere_correcciones  140  — admin devolvió con observaciones
+     *   pendiente               10  — solo se registraron, sin documentos ni postulación
+     *   en_revision             25  — documentos enviados, en revisión del admin
+     *   requiere_correcciones   10  — admin devolvió con observaciones
      *   aprobado_pendiente_pago 200 — admin aprobó, esperan pagar
      *   pagado                 320  — pagaron la matrícula, esperan el CUP
      *   rechazado               60  — solicitud rechazada por admin
@@ -413,20 +427,20 @@ class Gestion2025_2InscripcionSeeder extends Seeder
         ];
 
         // pendiente — sin documentos, sin postulación
-        for ($i = 0; $i < 80; $i++) {
+        for ($i = 0; $i < 10; $i++) {
             $this->crearCandidato($gestionId, $carreraIds, 'pendiente',
                 conReqs: false, conPostulacion: false, conPago: false);
         }
 
         // en_revision — todos los docs en pendiente_revision, con postulación
-        for ($i = 0; $i < 300; $i++) {
+        for ($i = 0; $i < 25; $i++) {
             $this->crearCandidato($gestionId, $carreraIds, 'en_revision',
                 conReqs: true, estadoReqs: 'pendiente_revision',
                 conPostulacion: true, conPago: false);
         }
 
         // requiere_correcciones — mezcla: 4 docs aprobados, 2 rechazados
-        for ($i = 0; $i < 140; $i++) {
+        for ($i = 0; $i < 10; $i++) {
             $this->crearCandidato($gestionId, $carreraIds, 'requiere_correcciones',
                 conReqs: true, estadoReqs: 'mixto',
                 conPostulacion: true, conPago: false);

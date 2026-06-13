@@ -15,6 +15,7 @@ use Illuminate\Database\Eloquent\Model;
  */
 trait RegistraBitacora
 {
+    // CU22 — Consultar bitácora de auditoría (registra eventos automáticamente en cada modelo)
     public static function bootRegistraBitacora(): void
     {
         static::created(fn (Model $modelo) => $modelo->guardarBitacora('crear'));
@@ -22,6 +23,7 @@ trait RegistraBitacora
         static::deleted(fn (Model $modelo) => $modelo->guardarBitacora('eliminar'));
     }
 
+    // CU22 — Consultar bitácora de auditoría (persiste el registro del evento)
     protected function guardarBitacora(string $accion): void
     {
         $cambios = [];

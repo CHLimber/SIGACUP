@@ -34,6 +34,7 @@ interface DocenteOpt {
     id: number;
     nombre: string;
     titulo: string | null;
+    materias: string[];
 }
 
 const props = defineProps<{
@@ -169,7 +170,7 @@ const resumenDocentes = computed(() =>
 );
 
 const totalAsignados   = computed(() => props.grupos.filter(g => seleccion.value[g.id] != null).length);
-const hayProblemas     = computed(() => resumenDocentes.value.some(r => r.excede || r.choca));
+const hayProblemas     = computed(() => resumenDocentes.value.some(r => r.excede || r.choca) || hayMateriasInvalidas.value);
 const hayAsignaciones  = computed(() => props.grupos.some(g => g.docente_id != null));
 
 // Marca si una opción de docente generaría choque de horario para un grupo dado
@@ -182,6 +183,22 @@ return false;
 
     return asignados.some(g => g.id !== grupo.id && g.horario_id === grupo.horario_id);
 };
+
+// Indica si el docente dicta la materia del grupo
+const dictaMateria = (docenteId: number, codigoMateria: string): boolean => {
+    const d = props.docentes.find(x => x.id === docenteId);
+
+    return d ? d.materias.includes(codigoMateria) : false;
+};
+
+// Asignaciones (p. ej. heredadas) donde el docente no dicta la materia
+const hayMateriasInvalidas = computed(() =>
+    props.grupos.some(g => {
+        const d = seleccion.value[g.id];
+
+        return d != null && !dictaMateria(d, g.codigo_materia);
+    }),
+);
 
 function guardar() {
     procesando.value = true;
@@ -257,7 +274,8 @@ function ejecutarAuto() {
             <ul class="mt-1 list-inside list-disc space-y-0.5">
                 <li>Cada docente puede dictar como máximo <strong>{{ maxPorDocente }}</strong> grupos.</li>
                 <li>Los horarios de los grupos de un mismo docente <strong>no pueden chocar</strong>.</li>
-                <li>Usa <strong>Asignar automáticamente</strong> para un reparto aleatorio que respeta ambas reglas, o ajusta manualmente cada materia.</li>
+                <li>Un docente solo puede recibir grupos de las <strong>materias que dicta</strong>; los docentes deshabilitados no aparecen.</li>
+                <li>Usa <strong>Asignar automáticamente</strong> para un reparto aleatorio que respeta estas reglas, o ajusta manualmente cada materia.</li>
             </ul>
         </div>
 
@@ -303,6 +321,9 @@ function ejecutarAuto() {
                             <td class="px-5 py-3">
                                 <p class="font-medium text-gray-900">{{ r.nombre }}</p>
                                 <p v-if="r.titulo" class="text-xs text-gray-500">{{ r.titulo }}</p>
+                                <p class="mt-0.5 font-mono text-[11px] text-gray-400">
+                                    {{ r.materias.length > 0 ? r.materias.join(' · ') : 'Sin materias asignadas' }}
+                                </p>
                             </td>
                             <td class="px-5 py-3 tabular-nums text-gray-700">
                                 <span class="font-semibold text-gray-900">{{ r.total }}</span>
@@ -355,13 +376,18 @@ function ejecutarAuto() {
                                 <select
                                     v-model="seleccion[m.id]"
                                     class="w-full rounded-md border px-3 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-[#073b75]"
-                                    :class="seleccion[m.id] != null && opcionChoca(m, seleccion[m.id] as number)
+                                    :class="seleccion[m.id] != null && (opcionChoca(m, seleccion[m.id] as number) || !dictaMateria(seleccion[m.id] as number, m.codigo_materia))
                                         ? 'border-red-300 bg-red-50'
                                         : 'border-gray-300 focus:border-[#073b75]'"
                                 >
                                     <option :value="null">— Sin asignar —</option>
-                                    <option v-for="d in docentes" :key="d.id" :value="d.id">
-                                        {{ d.nombre }}{{ opcionChoca(m, d.id) ? '  ⚠ choque' : '' }}
+                                    <option
+                                        v-for="d in docentes"
+                                        :key="d.id"
+                                        :value="d.id"
+                                        :disabled="!dictaMateria(d.id, m.codigo_materia)"
+                                    >
+                                        {{ d.nombre }}{{ !dictaMateria(d.id, m.codigo_materia) ? '  — no dicta esta materia' : (opcionChoca(m, d.id) ? '  ⚠ choque' : '') }}
                                     </option>
                                 </select>
                             </td>
@@ -374,7 +400,7 @@ function ejecutarAuto() {
             <div class="sticky bottom-0 flex items-center justify-end gap-3 rounded-xl border border-gray-200 bg-white/95 p-4 shadow-sm backdrop-blur">
                 <p v-if="hayProblemas" class="text-xs text-red-600">
                     <AlertTriangle class="mr-1 inline h-3.5 w-3.5 align-text-bottom" />
-                    Hay docentes que exceden el máximo o tienen choque de horario. Corrige antes de guardar.
+                    Hay docentes que exceden el máximo, tienen choque de horario o no dictan la materia asignada. Corrige antes de guardar.
                 </p>
                 <Button
                     style="background-color: #073b75;"

@@ -22,11 +22,13 @@ class FortifyServiceProvider extends ServiceProvider
         $this->configureRateLimiting();
     }
 
+    // CU01 — Iniciar sesión (registra el action personalizado de autenticación con bloqueo incremental)
     private function configureActions(): void
     {
         Fortify::authenticateUsing(new AutenticarUsuario);
     }
 
+    // CU01 — Iniciar sesión | CU02 — Cerrar sesión (define las vistas Inertia para login, 2FA y verificación de email)
     private function configureViews(): void
     {
         Fortify::loginView(fn (Request $request) => Inertia::render('SeguridadAcceso/Login', [
@@ -42,6 +44,7 @@ class FortifyServiceProvider extends ServiceProvider
         Fortify::confirmPasswordView(fn () => Inertia::render('auth/ConfirmPassword'));
     }
 
+    // CU01 — Iniciar sesión (limita intentos fallidos para login, 2FA y passkeys)
     private function configureRateLimiting(): void
     {
         RateLimiter::for('two-factor', function (Request $request) {

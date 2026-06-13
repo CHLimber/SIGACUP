@@ -19,10 +19,13 @@ Route::get('/', function () {
     return Inertia::render('Welcome', propsGestion($gestion));
 })->name('home');
 
-Route::post('/registro/estudiante', [RegistroController::class, 'storeCandidatoEstudiante'])->name('registro.estudiante');
-Route::post('/registro/docente', [RegistroController::class, 'storeCandidatoDocente'])->name('registro.docente');
+Route::post('/registro/estudiante', [RegistroController::class, 'storeCandidatoEstudiante'])
+    ->middleware('throttle:10,1')->name('registro.estudiante');
+Route::post('/registro/docente', [RegistroController::class, 'storeCandidatoDocente'])
+    ->middleware('throttle:10,1')->name('registro.docente');
 
-Route::post('/consulta/resultados', [ConsultaResultadoController::class, 'consultar'])->name('consulta.resultados');
+Route::post('/consulta/resultados', [ConsultaResultadoController::class, 'consultar'])
+    ->middleware('throttle:15,1')->name('consulta.resultados');
 
 Route::prefix('candidato/{token}')->name('portal.candidato.')->group(function () {
     Route::get('requisitos', [PortalCandidatoController::class, 'show'])->name('show');
@@ -36,7 +39,8 @@ Route::prefix('candidato/{token}')->name('portal.candidato.')->group(function ()
 
 Route::prefix('matricula/{token}')->name('portal.matricula.')->group(function () {
     Route::get('/', [PortalPagoController::class, 'show'])->name('show');
-    Route::post('payment-intent', [PortalPagoController::class, 'crearPaymentIntent'])->name('payment-intent');
+    Route::post('payment-intent', [PortalPagoController::class, 'crearPaymentIntent'])
+        ->middleware('throttle:10,1')->name('payment-intent');
     Route::post('confirmar', [PortalPagoController::class, 'confirmar'])->name('confirmar');
     Route::get('comprobante', [PortalPagoController::class, 'comprobante'])->name('comprobante');
 });

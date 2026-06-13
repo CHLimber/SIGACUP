@@ -17,6 +17,7 @@ use Illuminate\Support\Str;
 
 class RegistroController extends Controller
 {
+    // CU05 — Registrar postulante | CU20 — Enviar notificaciones automáticas (correo de recepción al estudiante)
     public function storeCandidatoEstudiante(RegistrarCandidatoEstudianteRequest $request): RedirectResponse
     {
         $data = $request->validated();
@@ -58,6 +59,7 @@ class RegistroController extends Controller
             ]);
     }
 
+    // CU23 — Registrar candidato docente | CU20 — Enviar notificaciones automáticas (correo de recepción al docente)
     public function storeCandidatoDocente(RegistrarCandidatoDocenteRequest $request): RedirectResponse
     {
         $data = $request->validated();

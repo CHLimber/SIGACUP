@@ -20,7 +20,7 @@ interface GestionItem {
     grupos: GrupoItem[];
 }
 
-const props = defineProps<{
+defineProps<{
     gestiones: GestionItem[];
 }>();
 
